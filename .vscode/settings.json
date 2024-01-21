@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "stdint.h": "c",
+        "stddef.h": "c",
+        "stdbool.h": "c",
+        "vga_text.h": "c",
+        "e9.h": "c",
+        "limine.h": "c",
+        "gdt.h": "c",
+        "vfs.h": "c",
+        "idt.h": "c",
+        "binary.h": "c"
+    }
+}
