@@ -5,6 +5,7 @@ kernel:
 	@make -C kernel/
 
 floppy:
+	@mkdir -p iso_root
 	@cp -v build/kernel.bin kernel/limine.cfg limine/limine-bios.sys \
       limine/limine-bios-cd.bin limine/limine-uefi-cd.bin iso_root/
 	@mkdir -p iso_root/EFI/BOOT
@@ -18,6 +19,7 @@ floppy:
         iso_root -o build/image.iso
 
 	@./limine/limine bios-install build/image.iso
+	@rm -rf iso_root
 
 disk:
 	@dd if=/dev/zero bs=1M count=0 seek=64 of=build/image.hdd
@@ -38,11 +40,11 @@ limine:
 
 run:
 	@clear
-	@qemu-system-x86_64 -cdrom build/image.iso -m 512M -smp 2 -serial stdio -debugcon stdio
+	@qemu-system-x86_64 -cdrom build/image.iso -m 2G -smp 2 file:build/serial_output.txt -debugcon stdio
 
 run_disk:
 	@clear
-	@qemu-system-x86_64 -drive format=raw,file=build/image.hdd -m 512M -smp 2 -serial file:build/serial_output.txt -debugcon stdio
+	@qemu-system-x86_64 -drive format=raw,file=build/image.hdd -m 2G -smp 2 -serial file:build/serial_output.txt -debugcon stdio
 
 clean:
 	@make -C kernel/ clean

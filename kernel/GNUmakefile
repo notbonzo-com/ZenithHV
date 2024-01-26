@@ -24,6 +24,9 @@ $(eval $(call DEFAULT_VAR,CC,$(DEFAULT_CC)))
 override DEFAULT_LD := ../../toolchain/x86_64-elf/bin/x86_64-elf-ld
 $(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
 
+override DEFAULT_AS := ../../toolchain/x86_64-elf/bin/x86_64-elf-as
+$(eval $(call DEFAULT_VAR,AS,$(DEFAULT_AS)))
+
 # User controllable C flags.
 override DEFAULT_CFLAGS := -g -O2 -pipe
 $(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))
@@ -57,11 +60,15 @@ override CFLAGS += \
     -mno-sse \
     -mno-sse2 \
     -mno-red-zone \
-    -I ./src
+    -I ./src \
+    -I ./src/util \
+    -Wno-trigraphs
 
 # Internal C preprocessor flags that should not be changed by the user.
 override CPPFLAGS := \
     -I . \
+    -I ./src \
+    -I ./src/util \
     $(CPPFLAGS) \
     -MMD \
     -MP
@@ -87,6 +94,7 @@ override NASMFLAGS += \
 override CFILES := $(shell find -L * -type f -name '*.c')
 override ASFILES := $(shell find -L * -type f -name '*.S')
 override NASMFILES := $(shell find -L * -type f -name '*.asm')
+override ASFILES := $(shell find -L * -type f -name '*.S')
 override OBJ := $(addprefix ../build/obj/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o) $(NASMFILES:.asm=.asm.o))
 override HEADER_DEPS := $(addprefix ../build/obj/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 

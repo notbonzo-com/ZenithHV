@@ -9,6 +9,27 @@
         "gdt.h": "c",
         "vfs.h": "c",
         "idt.h": "c",
-        "binary.h": "c"
+        "binary.h": "c",
+        "visual.h": "c",
+        "main.h": "c",
+        "font.h": "c",
+        "shape.h": "c",
+        "graphic.h": "c",
+        "paging.h": "c",
+        "mem.h": "c",
+        "vm.h": "c",
+        "type_traits": "c",
+        "stdarg.h": "c",
+        "hal.h": "c",
+        "string.h": "c",
+        "kmalloc.h": "c",
+        "pg.h": "c",
+        "*.chead": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "algorithm": "c",
+        "vector.h": "c"
     }
 }
