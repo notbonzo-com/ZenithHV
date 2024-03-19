@@ -1,4 +1,5 @@
 .PHONY: all kernel floppy disk limine run run_disk clean reset reinstall-limine
+
 all: kernel disk run_disk
 
 kernel:
@@ -6,7 +7,7 @@ kernel:
 
 floppy:
 	@mkdir -p iso_root
-	@cp -v build/kernel.bin kernel/limine.cfg limine/limine-bios.sys \
+	@cp -v build/kernel.bin kernel/cfg/limine.cfg limine/limine-bios.sys \
       limine/limine-bios-cd.bin limine/limine-uefi-cd.bin iso_root/
 	@mkdir -p iso_root/EFI/BOOT
 	@cp -v limine/BOOTX64.EFI iso_root/EFI/BOOT/
@@ -29,22 +30,35 @@ disk:
 	@mformat -i build/image.hdd@@1M
 	@mmd -i build/image.hdd@@1M ::/EFI ::/EFI/BOOT
 
-	@mcopy -i build/image.hdd@@1M build/kernel.bin kernel/limine.cfg limine/limine-bios.sys ::/
+	@mcopy -i build/image.hdd@@1M build/kernel.bin kernel/cfg/limine.cfg limine/limine-bios.sys ::/
 	@mcopy -i build/image.hdd@@1M limine/BOOTX64.EFI ::/EFI/BOOT
 	@mcopy -i build/image.hdd@@1M limine/BOOTIA32.EFI ::/EFI/BOOT
+
+	@echo "Example File Content" > build/example.txt
+	@mcopy -i build/image.hdd@@1M build/example.txt ::/
 
 limine:
 	@git clone https://github.com/limine-bootloader/limine.git --branch=binary --depth=1
 	@make -C limine
 	@mkdir -p iso_root
 
-run:
-	@clear
-	@qemu-system-x86_64 -cdrom build/image.iso -m 2G -smp 2 file:build/serial_output.txt -debugcon stdio
+# run:
+# 	@clear
+# 	@qemu-system-x86_64 -cdrom build/image.iso -m 2G -smp 2 -serial file:build/serial_output.txt -debugcon stdio
 
 run_disk:
 	@clear
-	@qemu-system-x86_64 -drive format=raw,file=build/image.hdd -m 2G -smp 2 -serial file:build/serial_output.txt -debugcon stdio
+	@qemu-system-x86_64 -drive format=raw,file=build/image.hdd \
+			-m 4G -enable-kvm -cpu host -smp 16 \
+			--no-reboot --no-shutdown \
+			-debugcon stdio \
+			-serial file:build/serial_output.txt \
+			-monitor file:build/monitor_output.txt \
+			-d int -M smm=off \
+			-device pci-bridge,chassis_nr=3,id=b2
+# -vga virtio -device pci-bridge,chassis_nr=2,id=b1
+# The VGA makes the screen so small that it's unusable.
+#-debugcon file:build/debugcon_output.txt \
 
 clean:
 	@make -C kernel/ clean

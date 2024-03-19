@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.embeddedhtml": "html",
         "stdint.h": "c",
         "stddef.h": "c",
         "stdbool.h": "c",
@@ -30,6 +31,25 @@
         "string_view": "c",
         "initializer_list": "c",
         "algorithm": "c",
-        "vector.h": "c"
+        "vector.h": "c",
+        "stdio.h": "c",
+        "compare": "c",
+        "cstdint": "c",
+        "ata.h": "c",
+        "debug.h": "c",
+        "int.h": "c",
+        "acpi.h": "c",
+        "memory.h": "c",
+        "init.h": "c",
+        "sched.h": "c",
+        "smp.h": "c",
+        "cpu.h": "c",
+        "stdatomic.h": "c",
+        "io.h": "c",
+        "page.h": "c",
+        "kheap.h": "c",
+        "cpuid.h": "c",
+        "cstdlib": "c",
+        "vector": "c"
     }
 }

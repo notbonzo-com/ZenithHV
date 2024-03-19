@@ -1,5 +1,6 @@
-../build/obj/src/hal/vfs.c.o: src/hal/vfs.c src/hal/vfs.h \
- src/drivers/debug/e9.h src/drivers/visual/font.h
-src/hal/vfs.h:
-src/drivers/debug/e9.h:
-src/drivers/visual/font.h:
+../build/obj/src/hal/vfs.c.o: src/hal/vfs.c inc/hal/vfs.h inc/x86/e9.h \
+ inc/vga/font.h inc/binary.h
+inc/hal/vfs.h:
+inc/x86/e9.h:
+inc/vga/font.h:
+inc/binary.h:

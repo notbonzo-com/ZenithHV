@@ -20,14 +20,12 @@ endef
 override DEFAULT_CC := ../../toolchain/x86_64-elf/bin/x86_64-elf-gcc
 $(eval $(call DEFAULT_VAR,CC,$(DEFAULT_CC)))
 
-# Same thing for "ld" (the linker).
 override DEFAULT_LD := ../../toolchain/x86_64-elf/bin/x86_64-elf-ld
 $(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
 
 override DEFAULT_AS := ../../toolchain/x86_64-elf/bin/x86_64-elf-as
 $(eval $(call DEFAULT_VAR,AS,$(DEFAULT_AS)))
 
-# User controllable C flags.
 override DEFAULT_CFLAGS := -g -O2 -pipe
 $(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))
 
@@ -35,15 +33,18 @@ $(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))
 override DEFAULT_CPPFLAGS :=
 $(eval $(call DEFAULT_VAR,CPPFLAGS,$(DEFAULT_CPPFLAGS)))
 
-# User controllable nasm flags.
+override DEFAULT_CXXFLAGS := -g -O2 -pipe -std=c++17
+$(eval $(call DEFAULT_VAR,CXXFLAGS,$(DEFAULT_CXXFLAGS)))
+
+override DEFAULT_CXX := ../../toolchain/x86_64-elf/bin/x86_64-elf-g++
+$(eval $(call DEFAULT_VAR,CXX,$(DEFAULT_CXX)))
+
 override DEFAULT_NASMFLAGS := -F dwarf -g
 $(eval $(call DEFAULT_VAR,NASMFLAGS,$(DEFAULT_NASMFLAGS)))
 
-# User controllable linker flags. We set none by default.
 override DEFAULT_LDFLAGS :=
 $(eval $(call DEFAULT_VAR,LDFLAGS,$(DEFAULT_LDFLAGS)))
 
-# Internal C flags that should not be changed by the user.
 override CFLAGS += \
     -Wall \
     -Wextra \
@@ -60,15 +61,15 @@ override CFLAGS += \
     -mno-sse \
     -mno-sse2 \
     -mno-red-zone \
-    -I ./src \
-    -I ./src/util \
+    -I ./inc/x86 \
+    -I ./ \
+    -I ./inc \
+    -I ./cfg \
     -Wno-trigraphs
 
-# Internal C preprocessor flags that should not be changed by the user.
 override CPPFLAGS := \
     -I . \
-    -I ./src \
-    -I ./src/util \
+    -I ./cfg \
     $(CPPFLAGS) \
     -MMD \
     -MP
@@ -82,15 +83,13 @@ override LDFLAGS += \
     --no-dynamic-linker \
     -z text \
     -z max-page-size=0x1000 \
-    -T linker.ld
+    -T cfg/linker.ld
 
 # Internal nasm flags that should not be changed by the user.
 override NASMFLAGS += \
     -Wall \
     -f elf64
 
-# Use "find" to glob all *.c, *.S, and *.asm files in the tree and obtain the
-# object and header dependency file names.
 override CFILES := $(shell find -L * -type f -name '*.c')
 override ASFILES := $(shell find -L * -type f -name '*.S')
 override NASMFILES := $(shell find -L * -type f -name '*.asm')
@@ -106,7 +105,7 @@ limine.h:
 	curl -Lo $@ https://github.com/limine-bootloader/limine/raw/trunk/limine.h
 
 # Link rules for the final kernel executable.
-../build/$(KERNEL): GNUmakefile linker.ld $(OBJ)
+../build/$(KERNEL): GNUmakefile cfg/linker.ld $(OBJ)
 	mkdir -p "$$(dirname $@)"
 	@echo -e "$(ANSI_GREEN)LINKING$(ANSI_RESET) $@"
 	@$(LD) $(OBJ) $(LDFLAGS) -o $@
@@ -115,7 +114,7 @@ limine.h:
 -include $(HEADER_DEPS)
 
 # Compilation rules for *.c files.
-../build/obj/%.c.o: %.c GNUmakefile limine.h
+../build/obj/%.c.o: %.c GNUmakefile cfg/limine.h
 	mkdir -p "$$(dirname $@)"
 	@echo -e "$(ANSI_GREEN)COMPILING$(ANSI_RESET) $<"
 	@$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
