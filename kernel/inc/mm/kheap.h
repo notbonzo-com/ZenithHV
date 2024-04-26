@@ -1,8 +1,15 @@
 #pragma once
 
-#include <stddef.h>
 #include <stdint.h>
+#include <stddef.h>
 
-extern uintptr_t kernelHeapBaseAddress;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void initKernelHeap(size_t max_heap_size_pages);
+void initKheap(size_t maxSize);
+extern uintptr_t kheap_base;
+
+#ifdef __cplusplus
+}
+#endif

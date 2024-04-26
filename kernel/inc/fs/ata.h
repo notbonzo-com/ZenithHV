@@ -1,17 +1,7 @@
 #pragma once
+
 #include <stdint.h>
-#include <stdbool.h>
-#include <hal/vfs.h>
-
-#define ATA_PRIMARY_IO 0x1F0
-#define ATA_SECONDARY_IO 0x170
-
-#define ATA_PRIMARY_DCR_AS 0x3F6
-#define ATA_SECONDARY_DCR_AS 0x376
-
-#define ATA_PRIMARY_IRQ 14
-#define ATA_SECONDARY_IRQ 15
-
+#include <stddef.h>
 
 #define ATA_SR_BSY     0x80
 #define ATA_SR_DRDY    0x40
@@ -92,6 +82,13 @@
 #define      ATA_READ      0x00
 #define      ATA_WRITE     0x013
 
-void ATARead(uint8_t *buf, uint32_t lba, uint32_t numsects, uint8_t drive);
-void ATAWrite(uint8_t *buf, uint32_t lba, uint32_t numsects, uint8_t drive);
-uint8_t ATAIdentify(uint8_t bus, uint8_t drive);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void ata_init(void);
+void ata_read(uint8_t *buf, uint32_t lba, uint32_t numsects);
+
+#ifdef __cplusplus
+}
+#endif

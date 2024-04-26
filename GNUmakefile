@@ -1,5 +1,7 @@
 .PHONY: all kernel floppy disk limine run run_disk clean reset reinstall-limine
 
+CORES := $(shell nproc)
+
 all: kernel disk run_disk
 
 kernel:
@@ -49,7 +51,7 @@ limine:
 run_disk:
 	@clear
 	@qemu-system-x86_64 -drive format=raw,file=build/image.hdd \
-			-m 4G -enable-kvm -cpu host -smp 16 \
+			-m 4G -enable-kvm -cpu host -smp $(CORES) \
 			--no-reboot --no-shutdown \
 			-debugcon stdio \
 			-serial file:build/serial_output.txt \
@@ -61,6 +63,7 @@ run_disk:
 #-debugcon file:build/debugcon_output.txt \
 
 clean:
+	@clear
 	@make -C kernel/ clean
 	@rm -rf build/image.hdd build/image.iso iso_root/
 	@rm -rf build/serial_output.txt
