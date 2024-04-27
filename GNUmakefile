@@ -40,7 +40,7 @@ disk:
 	@mcopy -i build/image.hdd@@1M build/example.txt ::/
 
 limine:
-	@git clone https://github.com/limine-bootloader/limine.git --branch=binary --depth=1
+	@git clone https://github.com/limine-bootloader/limine.git --branch=v7.x-binary --depth=1
 	@make -C limine
 	@mkdir -p iso_root
 
