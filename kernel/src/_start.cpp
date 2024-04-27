@@ -14,6 +14,7 @@
 #include <std/iostream.hpp>
 
 #include <fs/ata.h>
+#include <fs/mbr.h>
 #include <kalloc.h>
 
 LIMINE_BASE_REVISION(1)
@@ -41,15 +42,9 @@ extern "C" [[noreturn]] void _start(void) {
     debugf("Initilising ATA PIO");
     ata_init();
 
+    debugf("Parsing MBR Structure");
+    parse_mbr();
     debugf("Kernel is ready");
-
-    uint8_t* buffer = (uint8_t*)kmalloc(512);
-    ata_read(buffer, 0x0, 1);
-
-    for (int i = 0; i < 512; i++) {
-        kprintf("%x ", buffer[i]);
-    }
-    kprintf("\n");
 
     for(;;){asm volatile("hlt");}
     __builtin_unreachable();

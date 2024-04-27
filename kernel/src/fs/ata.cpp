@@ -55,7 +55,7 @@ uint8_t ide_identify(uint8_t bus, uint8_t drive)
 	outb(io + ATA_REG_LBA1, 0);
 	outb(io + ATA_REG_LBA2, 0);
 	outb(io + ATA_REG_COMMAND, ATA_CMD_IDENTIFY);
-	debugf("Sent IDENTIFY command to %s\n", bus==ATA_PRIMARY?"Primary":"Secondary\n");
+	debugf("Sent IDENTIFY command to %s", bus==ATA_PRIMARY?"Primary":"Secondary");
 	uint8_t status = inb(io + ATA_REG_STATUS);
 	if(status)
 	{
@@ -63,11 +63,11 @@ uint8_t ide_identify(uint8_t bus, uint8_t drive)
 pm_stat_read:		status = inb(io + ATA_REG_STATUS);
 		if(status & ATA_SR_ERR)
 		{
-			debugf("%s%s has ERR set. Disabled.\n", bus==ATA_PRIMARY?"Primary":"Secondary", drive==ATA_PRIMARY?" master":" slave");
+			debugf("%s%s has ERR set. Disabled.", bus==ATA_PRIMARY?"Primary":"Secondary", drive==ATA_PRIMARY?" master":" slave");
 			return 0;
 		}
 		while(!(status & ATA_SR_DRQ)) goto pm_stat_read;
-		debugf("%s%s is online.\n", bus==ATA_PRIMARY?"Primary":"Secondary", drive==ATA_PRIMARY?" master":" slave");
+		debugf("%s%s is online.", bus==ATA_PRIMARY?"Primary":"Secondary", drive==ATA_PRIMARY?" master":" slave");
 		identify_lock.acquire();
 		for(int i = 0; i<256; i++)
 		{
@@ -96,8 +96,8 @@ retry:;
 retry2:	status = inb(io + ATA_REG_STATUS);
 	if(status & ATA_SR_ERR)
 	{
-		// panic("ERR set, device failure!\n");
-        debugf("ERROR: Device failed\n");
+		// panic("ERR set, device failure!");
+        debugf("ERROR: Device failed");
         kpanic();
 	}
 	if(!(status & ATA_SR_DRQ)) goto retry2;
@@ -112,7 +112,7 @@ uint8_t ata_read_one(uint8_t *buf, uint32_t lba)
     uint16_t drive = ATA_MASTER;
 	uint8_t cmd = (drive==ATA_MASTER?0xE0:0xF0);
 	// uint8_t slavebit = (drive == ATA_MASTER?0x00:0x01);
-    // debugf("Slave bit is %d\n", slavebit);
+    // debugf("Slave bit is %d", slavebit);
 	outb(io + ATA_REG_HDDEVSEL, (cmd | (uint8_t)((lba >> 24 & 0x0F))));
 	outb(io + 1, 0x00);
 	outb(io + ATA_REG_SECCOUNT0, 1);
@@ -153,8 +153,8 @@ void ata_probe()
 			str[i] = ide_buf[ATA_IDENT_MODEL + i + 1];
 			str[i + 1] = ide_buf[ATA_IDENT_MODEL + i];
 		}
-        debugf("Device: %s\n", str);
-        debugf("Device drive: %d\n", (ATA_PRIMARY << 1) | ATA_MASTER);
+        debugf("Device: %s", str);
+        debugf("Device drive: %d", (ATA_PRIMARY << 1) | ATA_MASTER);
         kfree(str);
 	}
 	ide_identify(ATA_PRIMARY, ATA_SLAVE);
@@ -162,7 +162,7 @@ void ata_probe()
 
 void ata_init()
 {
-	debugf("Checking for ATA drives\n");
+	debugf("Checking for ATA drives");
 	ide_buf = (uint8_t *)kmalloc(512);
     IDT_SetVector(ATA_PRIMARY_IRQ, (uintptr_t)ide_primary_irq);
     IDT_SetVector(ATA_SECONDARY_IRQ, (uintptr_t)ide_secondary_irq);
