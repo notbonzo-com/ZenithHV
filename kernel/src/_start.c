@@ -2,6 +2,9 @@
 #include <kprintf.h>
 
 #include <_start/gdt.h>
+#include <_start/idt.h>
+
+extern __attribute__((noreturn)) void __preinit(void);
 
 __attribute__((noreturn)) void _start(void)
 {
@@ -10,6 +13,11 @@ __attribute__((noreturn)) void _start(void)
 	asm volatile ("cli");
 	debugf("Initilizing the Global Descriptor Table");
 	gdt_init();
+	debugf("Initilizing the Interrupt Descriptor Table");
+	idt_init();
 
-	for(;;) asm volatile ("hlt");
+
+	debugf("Calling __preinit");
+	__preinit();
 }
+
