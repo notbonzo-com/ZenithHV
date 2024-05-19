@@ -1,0 +1,15 @@
+#pragma once
+#include <stdint.h>
+
+namespace std {
+
+class klock {
+    uint8_t lock;
+public:
+    void acquire();
+    void release();
+    void a();
+    void r();
+};
+
+} // namespace std

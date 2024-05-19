@@ -1,21 +1,24 @@
-#include <_start/gdt.h>
-#include <smp.h>
-#include <util.h>
-#include <kprintf.h>
+#include <_start/gdt.hpp>
+#include <gdt.hpp>
+#include <kprintf>
 
-gdt_pointer_t GDTR;
+namespace gdt
+{
+
+pointer_t GDTR;
+
 
 struct __pack {
-    gdt_descriptor_t GDTS[5];
-    gdt_descriptor_ex_t TSS;
+    descriptor_t GDTS[5];
+    descriptor_ex_t TSS;
 } GDT;
 
-void gdt_init()
+void init()
 {
     kprintf(" -> Descriptor 0 (0x0): NULL\n");
-    GDT.GDTS[0] = (gdt_descriptor_t) { 0,0,0,0,0,0 };
+    GDT.GDTS[0] = (descriptor_t) { 0,0,0,0,0,0 };
     kprintf(" -> Descriptor 1 (0x8): Kernel Code\n");
-    GDT.GDTS[1] = (gdt_descriptor_t) {
+    GDT.GDTS[1] = (descriptor_t) {
         0, 0, 0,
         0b10011010,   // Access: Present, Ring 0, Code, Executable, Readable, not Accessed
         0b10100000, 0 // Granularity: 32-bit, 4KB granularity
@@ -24,7 +27,7 @@ void gdt_init()
     kprintf("    Granularity Flags: 32-bit operand size, 4KB block size\n");
 
     kprintf(" -> Descriptor 1 (0x10): Kernel Data\n");
-    GDT.GDTS[2] = (gdt_descriptor_t) {
+    GDT.GDTS[2] = (descriptor_t) {
         0, 0, 0,
         0b10010010,   // Access: Present, Ring 0, Data, Writable, not Accessed
         0b10100000, 0 // Granularity: 32-bit, 4KB granularity
@@ -33,7 +36,7 @@ void gdt_init()
     kprintf("    Granularity Flags: 32-bit operand size, 4KB block size\n");
 
     kprintf(" -> Descriptor 1 (0x18): Userspace Code\n");
-    GDT.GDTS[3] = (gdt_descriptor_t) {
+    GDT.GDTS[3] = (descriptor_t) {
         0, 0, 0,
         0b11111010,   // Access: Present, Ring 3, Code, Executable, Readable, not Accessed
         0b10100000, 0 // Granularity: 32-bit, 4KB granularity
@@ -42,7 +45,7 @@ void gdt_init()
     kprintf("    Granularity Flags: 32-bit operand size, 4KB block size\n");
 
     kprintf(" -> Descriptor 1 (0x20): Userspace Data\n");
-    GDT.GDTS[4] = (gdt_descriptor_t) {
+    GDT.GDTS[4] = (descriptor_t) {
         0, 0, 0,
         0b11110010,   // Access: Present, Ring 3, Data, Writable, not Accessed
         0b10100000, 0 // Granularity: 32-bit, 4KB granularity
@@ -54,11 +57,11 @@ void gdt_init()
     GDTR.offset = (uintptr_t) (&GDT);
 
     kprintf(" -> Reloading the GDT and segment registers\n");
-    gdt_reload();
+    reload();
     kprintf(" -> GDT initialization complete");
 }
 
-void gdt_reload()
+void reload()
 {
     kprintf(" -> Loading GDT into GDTR\n");
     asm volatile (
@@ -79,37 +82,42 @@ void gdt_reload()
     );
 }
 
-void tss_init()
+}
+
+namespace tss {
+void init()
 {
     kprintf(" -> Limit Low: %00x", sizeof(tss_t));
-    GDT.TSS.limit_low = sizeof(tss_t);
+    ::gdt::GDT.TSS.limit_low = sizeof(tss_t);
     kprintf(" -> Base Low: 0\n");
-    GDT.TSS.base_low = 0;
+    ::gdt::GDT.TSS.base_low = 0;
     kprintf(" -> Base Middle: 0\n");
-    GDT.TSS.base_mid = 0;
+    ::gdt::GDT.TSS.base_mid = 0;
     kprintf(" -> Base Hight: 0\n");
-    GDT.TSS.base_high = 0;
+    ::gdt::GDT.TSS.base_high = 0;
     kprintf(" -> Acces Byte: 10001001\n");
-    GDT.TSS.access_byte = 0b10001001;
+    ::gdt::GDT.TSS.access_byte = 0b10001001;
     kprintf(" -> Limit Hight && Flags: 0\n");
-    GDT.TSS.limit_high_and_flags = 0;
+    ::gdt::GDT.TSS.limit_high_and_flags = 0;
     kprintf(" -> Base: 0\n");
-    GDT.TSS.base = 0;
+    ::gdt::GDT.TSS.base = 0;
     kprintf(" -> Reserved: 0\n");
-    GDT.TSS.reserved = 0;
+    ::gdt::GDT.TSS.reserved = 0;
     kprintf(" -> TSS initialization complete\n");
 }
 
-klock tss_lock;
-void tss_reload(tss_t* addr)
+
+
+
+void reload(tss_t* addr)
 {
-    acquire_lock(&tss_lock);
-    GDT.TSS.base_low = (uint16_t)((uintptr_t)addr & 0xFFFF);
-    GDT.TSS.base_mid = (uint8_t)(((uintptr_t)addr >> 16) & 0xFF);
-    GDT.TSS.base_high = (uint8_t)(((uintptr_t)addr >> 24) & 0xFF);
-    GDT.TSS.limit_low = sizeof(tss_t);
-    GDT.TSS.access_byte = 0b10001001;
-    GDT.TSS.limit_high_and_flags = (uint8_t)(((sizeof(tss_t) >> 16) & 0x0F) | (0b0000));
+    //TODO Locks
+    ::gdt::GDT.TSS.base_low = (uint16_t)((uintptr_t)addr & 0xFFFF);
+    ::gdt::GDT.TSS.base_mid = (uint8_t)(((uintptr_t)addr >> 16) & 0xFF);
+    ::gdt::GDT.TSS.base_high = (uint8_t)(((uintptr_t)addr >> 24) & 0xFF);
+    ::gdt::GDT.TSS.limit_low = sizeof(tss_t);
+    ::gdt::GDT.TSS.access_byte = 0b10001001;
+    ::gdt::GDT.TSS.limit_high_and_flags = (uint8_t)(((sizeof(tss_t) >> 16) & 0x0F) | (0b0000));
 
     asm volatile (
         "ltr %0"
@@ -117,5 +125,6 @@ void tss_reload(tss_t* addr)
         : "rm" ((uint16_t)0x28)
         : "memory"
     );
-	release_lock(&tss_lock);
+}
+
 }

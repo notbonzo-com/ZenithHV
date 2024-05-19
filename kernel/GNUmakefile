@@ -3,7 +3,7 @@ override MAKEFLAGS += -rR
 ANSI_GREEN := \033[0;32m
 ANSI_RESET := \033[0m
 
-override KERNEL := kernel.elf
+override KERNEL := kernel.bin
 
 define DEFAULT_VAR =
     ifeq ($(origin $1),default)
@@ -14,7 +14,7 @@ define DEFAULT_VAR =
     endif
 endef
 
-# Assumes default location using my amazing toolchain.sh
+
 override DEFAULT_CC := ~/toolchain/x86_64-elf/bin/x86_64-elf-gcc
 $(eval $(call DEFAULT_VAR,CC,$(DEFAULT_CC)))
 
@@ -59,14 +59,14 @@ override CFLAGS += \
     -mno-sse \
     -mno-sse2 \
     -mno-red-zone \
-	-I . \
+    -I ./inc/x86 \
+    -I ./ \
     -I ./inc \
     -I ./cfg \
     -Wno-trigraphs
 
 override CPPFLAGS := \
     -I . \
-    -I ./cfg \
     -I ./cfg \
     -fno-omit-frame-pointer \
     -Wno-packed-bitfield-compat \
@@ -94,7 +94,6 @@ override NASMFLAGS += \
     -Wall \
     -f elf64
 
-# Yes I use the same makefile for C and C++, if you dont want c++ just dont add any .cpp files ¯\_(ツ)_/¯
 override CFILES := $(shell find -L * -type f -name '*.c')
 override ASFILES := $(shell find -L * -type f -name '*.S')
 override NASMFILES := $(shell find -L * -type f -name '*.asm')
@@ -102,6 +101,7 @@ override ASFILES := $(shell find -L * -type f -name '*.S')
 override HEADER_DEPS := $(addprefix ../build/obj/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 override CXXFILES := $(shell find -L * -type f -name '*.cpp')
 override OBJ := $(addprefix ../build/obj/,$(CFILES:.c=.c.o) $(CXXFILES:.cpp=.cpp.o) $(ASFILES:.S=.S.o) $(NASMFILES:.asm=.asm.o))
+
 
 .PHONY: all
 all: ../build/$(KERNEL)

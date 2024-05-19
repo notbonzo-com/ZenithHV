@@ -34,7 +34,7 @@
 
 #include <stdarg.h>
 #include <stddef.h>
-
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,8 +42,6 @@ extern "C" {
 
 extern const char *kernel_okay_string;
 
-
-int kprintf_verbose(const char *format, ...);
 
 /**
  * Output a character to a custom device like UART, used by the printf() function
@@ -61,7 +59,6 @@ void _putchar(char character);
  * \param format A string that specifies the format of the output
  * \return The number of characters that are written into the array, not counting the terminating null character
  */
-// be VERY careful with taking locks with smp!
 #define kprintf printf_
 int printf_(const char* format, ...);
 
@@ -113,7 +110,7 @@ int vprintf_(const char* format, va_list va);
  */
 int fctprintf(void (*out)(char character, void* arg), void* arg, const char* format, ...);
 
-// Added by NotBonzo and is not part of the original kprintf
+// Added by EntCFX and is not part of the original kprintf
 /**
  * Macor to printf with a leading kprintf("<<%s>> %s: %d -> <text>", __FILE__, __func__, __LINE__, __VA_ARGS__)
 */

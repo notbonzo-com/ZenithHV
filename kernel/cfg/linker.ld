@@ -15,18 +15,18 @@ SECTIONS
 {
     . = 0xffffffff80000000;
     
-    textStartAddr = .;
+    text_start_addr = .;
 
     .text : {
         *(.text .text.*)
         *(.gnu.linkonce.t*)
     } :text
     
-    textEndAddr = .;
+    text_end_addr = .;
 
     . += CONSTANT(MAXPAGESIZE);
     
-    rodataStartAddr = .;
+    rodata_start_addr = .;
 
     .rodata : {
         start_ctors = .;
@@ -41,11 +41,11 @@ SECTIONS
         *(.gnu.linkonce.r*)
     } :rodata
 
-    rodataEndAddr = .;
+    rodata_end_addr = .;
 
     . += CONSTANT(MAXPAGESIZE);
 
-    dataStartAddr = .;
+    data_start_addr = .;
 
     .data : {
         *(.data .data.*)
@@ -60,7 +60,7 @@ SECTIONS
         *(COMMON)
     } :data
 
-    dataEndAddr = .;
+    data_end_addr = .;
 
     /DISCARD/ : {
         *(.eh_frame)

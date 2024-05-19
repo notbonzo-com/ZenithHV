@@ -1,15 +1,21 @@
 .globl handlers
 .extern handlers
 
-.macro __swapgs_if_from_userspace
-    cmpq $0x18, 24(%rsp) # Are we comming from kernel space
+.macro _swapgs_if_user
+    cmpq $0x18, 24(%rsp)
     jne 1f
     swapgs
+	#movl $0xC0000101, %ecx
+	#rdmsr
+	#testl %edx, %edx
+	#je 1f
+	#swapgs
+	#xorl %ebx, %ebx
 1:
 .endm
 
 isr_handler_stub:
-    __swapgs_if_from_userspace
+    _swapgs_if_user
     pushq %rdi
     pushq %rsi
     pushq %rbp
@@ -44,7 +50,7 @@ isr_handler_stub:
 
     movq %rsp, %rdi
     movq 168(%rsp), %rbx
-# TODO base, offset, scale 
+# TODO base, offset, scale
     shlq $3, %rbx
     leaq handlers(%rip), %rax
     addq %rbx, %rax
@@ -68,7 +74,7 @@ isr_handler_stub:
     popq %rdi
     addq $16, %rsp
 
-    __swapgs_if_from_userspace
+    _swapgs_if_user
 
     iretq
 

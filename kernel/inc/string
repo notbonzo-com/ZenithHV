@@ -1,0 +1,49 @@
+#pragma once
+
+#include <stddef.h>
+#include <stdint.h>
+
+size_t strlen(const char* s);
+char* strcpy(char* dest, const char* src);
+
+void* memcpy(void* dest, const void* src, size_t n);
+void* memset(void* s, int c, size_t n);
+void *memmove(void *dest, const void *src, size_t n);
+
+#ifdef STRING
+namespace std {
+
+
+class string {
+private:
+    char* data;
+    size_t length;
+
+public:
+    // Default constructor
+    string();
+
+    // Constructor with initial value
+    string(const char* str);
+
+    // Copy constructor
+    string(const string& other);
+
+    // Destructor
+    ~string();
+
+    // Assignment operator
+    string& operator=(const string& other);
+
+    // Append function
+    void append(const char* str);
+
+    // Get length of the string
+    size_t size() const;
+
+    // C-style string access
+    const char* c_str() const;
+};
+
+}
+#endif

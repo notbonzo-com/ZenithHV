@@ -1,12 +1,9 @@
-#include <kprintf.h>
-#include <util.h>
-#include <smp.h>
-
-klock kprintf_lock;
-__attribute__((no_sanitize_address)) void _putchar(char c)
+extern "C" {
+void _putchar(char c)
 {
     asm volatile ("outb %0, %1" : : "a"(c), "Nd"(0xe9));
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // \author (c) Marco Paland (info@paland.com)
@@ -41,14 +38,11 @@ __attribute__((no_sanitize_address)) void _putchar(char c)
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdarg.h>
 #include <stdint.h>
 
-// define this globally (e.g. gcc -DPRINTF_INCLUDE_CONFIG_H ...) to include the
-// printf_config.h header file
-// default: undefined
-#ifdef PRINTF_INCLUDE_CONFIG_H
-#include "printf_config.h"
-#endif
+#include <atomic>
 
 // 'ntoa' conversion buffer size, this must be big enough to hold one converted
 // numeric number including padded zeros (dynamically created on stack)
@@ -134,7 +128,7 @@ typedef struct
 } out_fct_wrap_type;
 
 // internal buffer output
-__attribute__((no_sanitize_address)) static inline void _out_buffer(char character, void *buffer, size_t idx, size_t maxlen)
+static inline void _out_buffer(char character, void *buffer, size_t idx, size_t maxlen)
 {
     if (idx < maxlen)
     {
@@ -143,7 +137,7 @@ __attribute__((no_sanitize_address)) static inline void _out_buffer(char charact
 }
 
 // internal null output
-__attribute__((no_sanitize_address)) static inline void _out_null(char character, void *buffer, size_t idx, size_t maxlen)
+static inline void _out_null(char character, void *buffer, size_t idx, size_t maxlen)
 {
     (void)character;
     (void)buffer;
@@ -152,7 +146,7 @@ __attribute__((no_sanitize_address)) static inline void _out_null(char character
 }
 
 // internal _putchar wrapper
-__attribute__((no_sanitize_address)) static inline void _out_char(char character, void *buffer, size_t idx, size_t maxlen)
+static inline void _out_char(char character, void *buffer, size_t idx, size_t maxlen)
 {
     (void)buffer;
     (void)idx;
@@ -164,7 +158,7 @@ __attribute__((no_sanitize_address)) static inline void _out_char(char character
 }
 
 // internal output function wrapper
-__attribute__((no_sanitize_address)) static inline void _out_fct(char character, void *buffer, size_t idx, size_t maxlen)
+static inline void _out_fct(char character, void *buffer, size_t idx, size_t maxlen)
 {
     (void)idx;
     (void)maxlen;
@@ -177,7 +171,7 @@ __attribute__((no_sanitize_address)) static inline void _out_fct(char character,
 
 // internal secure strlen
 // \return The length of the string (excluding the terminating 0) limited by 'maxsize'
-__attribute__((no_sanitize_address)) static inline unsigned int _strnlen_s(const char *str, size_t maxsize)
+static inline unsigned int _strnlen_s(const char *str, size_t maxsize)
 {
     const char *s;
     for (s = str; *s && maxsize--; ++s)
@@ -187,13 +181,13 @@ __attribute__((no_sanitize_address)) static inline unsigned int _strnlen_s(const
 
 // internal test if char is a digit (0-9)
 // \return true if char is a digit
-__attribute__((no_sanitize_address)) static inline bool _is_digit(char ch)
+static inline bool _is_digit(char ch)
 {
     return (ch >= '0') && (ch <= '9');
 }
 
 // internal ASCII string to unsigned int conversion
-__attribute__((no_sanitize_address)) static unsigned int _atoi(const char **str)
+static unsigned int _atoi(const char **str)
 {
     unsigned int i = 0U;
     while (_is_digit(**str))
@@ -204,7 +198,7 @@ __attribute__((no_sanitize_address)) static unsigned int _atoi(const char **str)
 }
 
 // output the specified string in reverse, taking care of any zero-padding
-__attribute__((no_sanitize_address)) static size_t _out_rev(out_fct_type out, char *buffer, size_t idx, size_t maxlen, const char *buf, size_t len, unsigned int width, unsigned int flags)
+static size_t _out_rev(out_fct_type out, char *buffer, size_t idx, size_t maxlen, const char *buf, size_t len, unsigned int width, unsigned int flags)
 {
     const size_t start_idx = idx;
 
@@ -236,7 +230,7 @@ __attribute__((no_sanitize_address)) static size_t _out_rev(out_fct_type out, ch
 }
 
 // internal itoa format
-__attribute__((no_sanitize_address)) static size_t _ntoa_format(out_fct_type out, char *buffer, size_t idx, size_t maxlen, char *buf, size_t len, bool negative, unsigned int base, unsigned int prec, unsigned int width, unsigned int flags)
+static size_t _ntoa_format(out_fct_type out, char *buffer, size_t idx, size_t maxlen, char *buf, size_t len, bool negative, unsigned int base, unsigned int prec, unsigned int width, unsigned int flags)
 {
     // pad leading zeros
     if (!(flags & FLAGS_LEFT))
@@ -304,7 +298,7 @@ __attribute__((no_sanitize_address)) static size_t _ntoa_format(out_fct_type out
 }
 
 // internal itoa for 'long' type
-__attribute__((no_sanitize_address)) static size_t _ntoa_long(out_fct_type out, char *buffer, size_t idx, size_t maxlen, unsigned long value, bool negative, unsigned long base, unsigned int prec, unsigned int width, unsigned int flags)
+static size_t _ntoa_long(out_fct_type out, char *buffer, size_t idx, size_t maxlen, unsigned long value, bool negative, unsigned long base, unsigned int prec, unsigned int width, unsigned int flags)
 {
     char buf[PRINTF_NTOA_BUFFER_SIZE];
     size_t len = 0U;
@@ -331,7 +325,7 @@ __attribute__((no_sanitize_address)) static size_t _ntoa_long(out_fct_type out, 
 
 // internal itoa for 'long long' type
 #if defined(PRINTF_SUPPORT_LONG_LONG)
-__attribute__((no_sanitize_address)) static size_t _ntoa_long_long(out_fct_type out, char *buffer, size_t idx, size_t maxlen, unsigned long long value, bool negative, unsigned long long base, unsigned int prec, unsigned int width, unsigned int flags)
+static size_t _ntoa_long_long(out_fct_type out, char *buffer, size_t idx, size_t maxlen, unsigned long long value, bool negative, unsigned long long base, unsigned int prec, unsigned int width, unsigned int flags)
 {
     char buf[PRINTF_NTOA_BUFFER_SIZE];
     size_t len = 0U;
@@ -365,7 +359,7 @@ static size_t _etoa(out_fct_type out, char *buffer, size_t idx, size_t maxlen, d
 #endif
 
 // internal ftoa for fixed decimal floating point
-__attribute__((no_sanitize_address)) static size_t _ftoa(out_fct_type out, char *buffer, size_t idx, size_t maxlen, double value, unsigned int prec, unsigned int width, unsigned int flags)
+static size_t _ftoa(out_fct_type out, char *buffer, size_t idx, size_t maxlen, double value, unsigned int prec, unsigned int width, unsigned int flags)
 {
     char buf[PRINTF_FTOA_BUFFER_SIZE];
     size_t len = 0U;
@@ -516,7 +510,7 @@ __attribute__((no_sanitize_address)) static size_t _ftoa(out_fct_type out, char 
 
 #if defined(PRINTF_SUPPORT_EXPONENTIAL)
 // internal ftoa variant for exponential floating-point type, contributed by Martijn Jasperse <m.jasperse@gmail.com>
-__attribute__((no_sanitize_address)) static size_t _etoa(out_fct_type out, char *buffer, size_t idx, size_t maxlen, double value, unsigned int prec, unsigned int width, unsigned int flags)
+static size_t _etoa(out_fct_type out, char *buffer, size_t idx, size_t maxlen, double value, unsigned int prec, unsigned int width, unsigned int flags)
 {
     // check for NaN and special values
     if ((value != value) || (value > DBL_MAX) || (value < -DBL_MAX))
@@ -643,10 +637,12 @@ __attribute__((no_sanitize_address)) static size_t _etoa(out_fct_type out, char 
 #endif // PRINTF_SUPPORT_EXPONENTIAL
 #endif // PRINTF_SUPPORT_FLOAT
 
+std::klock kprintfLock;
+
 // internal vsnprintf
-__attribute__((no_sanitize_address)) static int _vsnprintf(out_fct_type out, char *buffer, const size_t maxlen, const char *format, va_list va)
+static int _vsnprintf(out_fct_type out, char *buffer, const size_t maxlen, const char *format, va_list va)
 {
-	acquire_lock(&kprintf_lock);
+    kprintfLock.a();
     unsigned int flags, width, precision, n;
     size_t idx = 0U;
 
@@ -997,7 +993,7 @@ __attribute__((no_sanitize_address)) static int _vsnprintf(out_fct_type out, cha
     // termination
     out((char)0, buffer, idx < maxlen ? idx : maxlen - 1U, maxlen);
 
-    release_lock(&kprintf_lock);
+    kprintfLock.r();
 
     // return written chars without terminating \0
     return (int)idx;
@@ -1005,7 +1001,7 @@ __attribute__((no_sanitize_address)) static int _vsnprintf(out_fct_type out, cha
 
 ///////////////////////////////////////////////////////////////////////////////
 
-__attribute__((no_sanitize_address)) int printf_(const char *format, ...)
+int printf_(const char *format, ...)
 {
     va_list va;
     va_start(va, format);
@@ -1015,7 +1011,7 @@ __attribute__((no_sanitize_address)) int printf_(const char *format, ...)
     return ret;
 }
 
-__attribute__((no_sanitize_address)) int sprintf_(char *buffer, const char *format, ...)
+int sprintf_(char *buffer, const char *format, ...)
 {
     va_list va;
     va_start(va, format);
@@ -1024,7 +1020,7 @@ __attribute__((no_sanitize_address)) int sprintf_(char *buffer, const char *form
     return ret;
 }
 
-__attribute__((no_sanitize_address)) int snprintf_(char *buffer, size_t count, const char *format, ...)
+int snprintf_(char *buffer, size_t count, const char *format, ...)
 {
     va_list va;
     va_start(va, format);
@@ -1033,18 +1029,18 @@ __attribute__((no_sanitize_address)) int snprintf_(char *buffer, size_t count, c
     return ret;
 }
 
-__attribute__((no_sanitize_address)) int vprintf_(const char *format, va_list va)
+int vprintf_(const char *format, va_list va)
 {
     char buffer[1];
     return _vsnprintf(_out_char, buffer, (size_t)-1, format, va);
 }
 
-__attribute__((no_sanitize_address)) int vsnprintf_(char *buffer, size_t count, const char *format, va_list va)
+int vsnprintf_(char *buffer, size_t count, const char *format, va_list va)
 {
     return _vsnprintf(_out_buffer, buffer, count, format, va);
 }
 
-__attribute__((no_sanitize_address)) int fctprintf(void (*out)(char character, void *arg), void *arg, const char *format, ...)
+int fctprintf(void (*out)(char character, void *arg), void *arg, const char *format, ...)
 {
     va_list va;
     va_start(va, format);
@@ -1053,24 +1049,4 @@ __attribute__((no_sanitize_address)) int fctprintf(void (*out)(char character, v
     va_end(va);
     return ret;
 }
-
-#ifdef MUNKOS_VERBOSE_BUILD
-__attribute__((no_sanitize_address)) int kprintf_verbose(const char *format, ...)
-{
-    va_list var_args;
-    va_start(var_args, format);
-
-    int ret = kvprintf(format, var_args);
-
-    va_end(var_args);
-
-    return ret;
 }
-#else
-__attribute__((no_sanitize_address)) int kprintf_verbose(const char *format, ...)
-{
-    (void)format;
-
-    return 0;
-}
-#endif // MUNKOS_VERBOSE_BUILD

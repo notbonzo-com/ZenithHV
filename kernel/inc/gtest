@@ -1,0 +1,20 @@
+/* Good Tests */
+#pragma once
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <kprintf>
+#include <intr.hpp>
+
+namespace gtest {
+
+inline void assert(bool condition, const char* message) {
+    if (!condition) {
+		kprintf("\n\n\n -- Offending test: %s\n", message);
+		intr::kpanic(NULL, "TEST FAILED");
+    } else {
+        kprintf(" -> TEST PASSED: %s\n", message);
+    }
+}
+
+}

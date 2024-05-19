@@ -1,6 +1,6 @@
 CORES := $(shell nproc)
 
-all: builddir kernel disk run
+all: kernel disk run
 
 kernel:
 	@make -C kernel/
@@ -13,9 +13,12 @@ disk:
 	@mformat -i build/image.hdd@@1M
 	@mmd -i build/image.hdd@@1M ::/EFI ::/EFI/BOOT
 
-	@mcopy -i build/image.hdd@@1M build/kernel.elf kernel/cfg/limine.cfg limine/limine-bios.sys ::/
+	@mcopy -i build/image.hdd@@1M build/kernel.bin kernel/cfg/limine.cfg limine/limine-bios.sys ::/
 	@mcopy -i build/image.hdd@@1M limine/BOOTX64.EFI ::/EFI/BOOT
 	@mcopy -i build/image.hdd@@1M limine/BOOTIA32.EFI ::/EFI/BOOT
+
+	@echo "Example File Content" > build/example.txt
+	@mcopy -i build/image.hdd@@1M build/example.txt ::/
 
 limine:
 	@git clone https://github.com/limine-bootloader/limine.git --branch=v7.x-binary --depth=1
@@ -37,9 +40,6 @@ run:
 			-device pci-bridge,chassis_nr=3,id=b2 \
 			-D build/qemu_log.txt -d guest_errors,cpu_reset
 
-builddir:
-	@mkdir -p build
-
 clean:
 	@clear
 	@make -C kernel/ clean
@@ -51,4 +51,4 @@ reset:
 	@clear
 	@make
 
-.PHONY: all kernel disk run clean reset reinstall-limine builddir
+.PHONY: all kernel disk run clean reset reinstall-limine

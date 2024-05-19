@@ -1,12 +1,19 @@
-#include <_start/idt.h>
-#include <smp.h>
-#include <util.h>
-#include <kprintf.h>
+#include <_start/idt.hpp>
+#include <intr.hpp>
+#include <util>
+#include <atomic>
+#include <kprintf>
+#include <string>
 
-__attribute__((aligned(16))) idt_entry_t entries[256];
-uintptr_t handlers[256] = {0};
+namespace intr
+{
 
-idt_pointer_t idtr;
+__attribute__((aligned(16))) entry_t entries[256];
+extern "C" {
+    uintptr_t handlers[256] = {0};
+}
+
+pointer_t idtr;
 
 static const char * strings[32] = {
     "Division by Zero",
@@ -41,6 +48,11 @@ static const char * strings[32] = {
     "VMM Communication Exception",
     "Security Exception",
     "RESERVED VECTOR"
+};
+
+struct stacktrace_tree {
+    struct stacktrace_tree *rbp;
+    uintptr_t rsp;
 };
 
 void stacktrace(regs_t *regs) {
@@ -113,10 +125,10 @@ void capture_regs(regs_t *context) {
 
     context->rip = (uint64_t)__builtin_return_address(0);
 }
-
 static void print_register(const char *name, uint64_t value) {
     kprintf("%-4s: 0x%016llx", name, value); 
 }
+
 
 void kpanic(regs_t *nregs, const char* str)
 {
@@ -128,7 +140,7 @@ void kpanic(regs_t *nregs, const char* str)
         regs.interrupt = 0xDEADBEEF;
     } else {
         // regs = *nregs; // May page fault (causing a double and then tripple fault), scary!
-        // Guess what! It does tripple fault!!! This is a certified notbonzo moment
+        // Guess what! It does tripple fault!!!
         memcpy(&regs, nregs, sizeof(regs_t));
     }
 
@@ -174,6 +186,8 @@ void kpanic(regs_t *nregs, const char* str)
     print_register("│       R13 ", regs.R13);kprintf("                     │\n");
     print_register("│       R14 ", regs.R14);kprintf("                     │\n");
     print_register("│       R15 ", regs.R15);kprintf("                     │\n");
+    // kprintf("└───────────┴────────────────────────────────────────┘\n");
+
     kprintf("├───────────┼────────────────────────────────────────┼────────────────────┐\n");
     kprintf("│   RFLAGS  │                                        │                    │\n");
     kprintf("└───────────┴────────────────────────────────────────┴────────────────────┘\n");
@@ -207,8 +221,7 @@ void kpanic(regs_t *nregs, const char* str)
     asm volatile ("hlt");
 }
 
-
-void idt_load()
+void load()
 {
     kprintf("  --> Loading the IDT\n");
     kprintf("  ---> Offset: 0x%00x\n", (uintptr_t)entries);
@@ -222,58 +235,57 @@ void idt_load()
     );
 }
 
-void default_interrupt_handler(regs_t* CPU)
-// TODO This will handle stuff like page manager etc
+extern "C" void default_interrupt_handler(regs_t* CPU)
 {
     kpanic(CPU, "?");
 }
 
-void idt_init()
+void init()
 {
     kprintf(" -> Setting vectors 0-32 to default_interrupt_handler\n");
     for (size_t vector = 0; vector < 32; vector++) {
-        idt_setGate(vector, stubs[vector], 0b10001111);
+        setGate(vector, stubs[vector], 0b10001111);
         handlers[vector] = (uintptr_t)default_interrupt_handler;
     }
     kprintf(" -> Setting vectors 32-256 to default_interrupt_handler\n");
     for (size_t vector = 32; vector < 256; vector++) {
-        idt_setGate(vector, stubs[vector], 0b10001110);
+        setGate(vector, stubs[vector], 0b10001110);
         handlers[vector] = (uintptr_t)default_interrupt_handler;
     }
 
     kprintf(" -> Loading the IDT Pointer into the IDTR register");
-    idt_load();
+    load();
     kprintf(" -> IDT initialization complete\n");
 }
 
-klock registervector_lock;
+std::klock registerVectorLock;
 
-void idt_registerVector(size_t vector, uintptr_t handler)
+void registerVector(size_t vector, uintptr_t handler)
 {
-    acquire_lock(&registervector_lock);
+    registerVectorLock.a();
     debugf(" Registering Vector %d to handler %000x", vector, handler);
     if (handlers[vector] != (uintptr_t)default_interrupt_handler || !handler) {
         kpanic(NULL, "Failed to register vector!");
     }
     handlers[vector] = handler;
-    release_lock(&registervector_lock);
+    registerVectorLock.r();
 }
 
-klock erasevector_lock;
+std::klock eraseVectorLock;
 
-void idt_eraseVector(size_t vector)
+void eraseVector(size_t vector)
 {
-    acquire_lock(&erasevector_lock);
+    eraseVectorLock.a();
     if (handlers[vector] == (uintptr_t)default_interrupt_handler || vector < 32) {
         kpanic(NULL, "Failed to erase vector\n");
     }
     handlers[vector] = (uintptr_t)default_interrupt_handler;
-    release_lock(&erasevector_lock);
+    eraseVectorLock.r();
 }
 
-void idt_setGate(uint8_t interrupt, uintptr_t base, int8_t flags)
+void setGate(uint8_t interrupt, uintptr_t base, int8_t flags)
 {
-    idt_entry_t *descriptor = &entries[interrupt];
+    entry_t *descriptor = &entries[interrupt];
 
     descriptor->offset_low = base & 0xFFFF;
     descriptor->selector = 0x8;
@@ -282,4 +294,6 @@ void idt_setGate(uint8_t interrupt, uintptr_t base, int8_t flags)
     descriptor->offset_mid = (base >> 16) & 0xFFFF;
     descriptor->offset_high = (base >> 32) & 0xFFFFFFFF;
     descriptor->zero = 0;
+}
+
 }

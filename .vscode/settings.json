@@ -93,6 +93,9 @@
         "cpu.hpp": "c",
         "kprintf.h": "c",
         "math.h": "c",
-        "util.h": "c"
+        "util.h": "c",
+        "pmm.h": "c",
+        "vmm.h": "c",
+        "util": "cpp"
     }
 }

@@ -1,13 +1,10 @@
 #pragma once
+
 #include <stdint.h>
 #include <stddef.h>
-#include <util.h>
+#include <util>
 
-/* Stripped down version of _start/idt.h for kpanic and setting vectors */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace intr {
 
 typedef struct {
     uint64_t es, ds;
@@ -17,10 +14,12 @@ typedef struct {
     uint64_t rip, cs, rflags, rsp, ss;                   // pushed automatically by CPU
 } __pack regs_t;
 
-void kpanic(regs_t *regs, const char* str);
-void idt_registerVector(size_t vector, uintptr_t handler);
-void idt_eraseVector(size_t vector);
+using handler_t = void (*)(regs_t* regs);
 
-#ifdef __cplusplus
+void kpanic(regs_t *regs, const char* str);
+void registerVector(size_t vector, uintptr_t handler);
+void eraseVector(size_t vector);
+void setGate(uint8_t interrupt, uintptr_t base, int8_t flags);
+void stacktrace(regs_t *regs);
+
 }
-#endif
