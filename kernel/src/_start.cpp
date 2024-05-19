@@ -4,6 +4,8 @@
 #include <intr.hpp>
 #include <pmm.hpp>
 
+#include <kmalloc>
+
 #include <_start/gdt.hpp>
 #include <_start/idt.hpp>
 #include <_start/pmm.hpp>

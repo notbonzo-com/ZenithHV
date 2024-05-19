@@ -1,0 +1,54 @@
+#pragma once
+
+#include <stddef.h>
+#include <kmalloc>
+#include <intr.hpp>
+
+void* operator new(size_t size) {
+    void* ptr = kmalloc(size);
+    if (!ptr) {
+        intr::kpanic(nullptr, "Failed to allocate memory");
+    }
+    return ptr;
+}
+
+void operator delete(void* ptr) noexcept {
+    if (ptr) {
+        kfree(ptr);
+    }
+}
+
+void operator delete(void* ptr, size_t) noexcept {
+    if (ptr) {
+        kfree(ptr);
+    }
+}
+
+void* operator new[](size_t size) {
+    void* ptr = kmalloc(size);
+    if (!ptr) {
+        intr::kpanic(nullptr, "Failed to allocate memory");
+    }
+    return ptr;
+}
+
+void operator delete[](void* ptr) noexcept {
+    if (ptr) {
+        kfree(ptr);
+    }
+}
+
+void operator delete[](void* ptr, size_t) noexcept {
+    if (ptr) {
+        kfree(ptr);
+    }
+}
+
+// Placement new
+inline void* operator new(size_t, void* ptr) noexcept {
+    return ptr;
+}
+
+inline void operator delete(void*, void*) noexcept {
+    // Do nothing
+}

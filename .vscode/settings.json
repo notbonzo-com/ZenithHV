@@ -96,6 +96,9 @@
         "util.h": "c",
         "pmm.h": "c",
         "vmm.h": "c",
-        "util": "cpp"
+        "util": "cpp",
+        "kmalloc": "cpp",
+        "*.tpp": "cpp",
+        "kprintf": "cpp"
     }
 }
