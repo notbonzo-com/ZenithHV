@@ -11,7 +11,5 @@
 
 extern "C" uint8_t kmain(void)
 {
-    
-    
     return 0;
 }

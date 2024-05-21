@@ -18,7 +18,7 @@ extern "C" char text_start_addr[], text_end_addr[],
         rodata_start_addr[], rodata_end_addr[],
         data_start_addr[], data_end_addr[];
 	
-page_map_ctx kernel_code_pmc;
+page_map_ctx kernel_pmc;
 static uint64_t phys_addr_width = 0;
 static uint64_t lin_addr_width = 0;
 
@@ -54,13 +54,13 @@ void init()
     }
 
     kprintf(" -> Claiming page for PML4\n");
-    kernel_code_pmc.pml4_address = (uintptr_t)pmm::claim(1);
-    if (!kernel_code_pmc.pml4_address) {
+    kernel_pmc.pml4_address = (uintptr_t)pmm::claim(1);
+    if (!kernel_pmc.pml4_address) {
         intr::kpanic(nullptr, "Failed to claim page for PML4");
     }
-    kernel_code_pmc.pml4_address += pmm::hhdm->offset;
+    kernel_pmc.pml4_address += pmm::hhdm->offset;
     kprintf(" -> Zeroing out contents of newly allocated page\n");
-    memset((void *)kernel_code_pmc.pml4_address, 0, PAGE_SIZE);
+    memset((void *)kernel_pmc.pml4_address, 0, PAGE_SIZE);
 
     uintptr_t text_start = ALIGN_DOWN((uintptr_t)text_start_addr, PAGE_SIZE),
               rodata_start = ALIGN_DOWN((uintptr_t)rodata_start_addr, PAGE_SIZE),
@@ -73,7 +73,7 @@ void init()
 
     kprintf(" -> Mapping kernel PMM structures\n");
     for (size_t off = 0; off < ALIGN_UP(pmm::totalBytesPmmStructures, PAGE_SIZE); off += PAGE_SIZE) {
-        map(&kernel_code_pmc, (uintptr_t)pmm::pageBitmap + off, (uintptr_t)pmm::pageBitmap - pmm::hhdm->offset + off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
+        map(&kernel_pmc, (uintptr_t)pmm::pageBitmap + off, (uintptr_t)pmm::pageBitmap - pmm::hhdm->offset + off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
     }
 
     kprintf(" -> Mapping usable memory and framebuffer\n");
@@ -82,19 +82,19 @@ void init()
 
         if (entry->type == LIMINE_MEMMAP_USABLE) {
             for (size_t off = entry->base; off < entry->base + entry->length; off += PAGE_SIZE) {
-                map(&kernel_code_pmc, off + pmm::hhdm->offset, off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
+                map(&kernel_pmc, off + pmm::hhdm->offset, off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
             }
         }
         else if (entry->type == LIMINE_MEMMAP_FRAMEBUFFER) {
             for (size_t off = 0; off < ALIGN_UP(entry->base + entry->length, PAGE_SIZE); off += PAGE_SIZE) {
                 uintptr_t base_off_aligned = ALIGN_UP(entry->base + off, PAGE_SIZE);
-                map(&kernel_code_pmc, base_off_aligned + pmm::hhdm->offset, base_off_aligned,
+                map(&kernel_pmc, base_off_aligned + pmm::hhdm->offset, base_off_aligned,
                     PTE_BIT_PRESENT | PTE_BIT_READ_WRITE | PTE_BIT_EXECUTE_DISABLE | PTE_BIT_WRITE_THROUGH_CACHING);
             }
         }
         else if (entry->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE) {
             for (size_t off = 0; off < ALIGN_UP(entry->base + entry->length, PAGE_SIZE); off += PAGE_SIZE) {
-                map(&kernel_code_pmc, entry->base + off + pmm::hhdm->offset, entry->base + off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
+                map(&kernel_pmc, entry->base + off + pmm::hhdm->offset, entry->base + off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
             }
         }
     }
@@ -102,21 +102,21 @@ void init()
     kprintf(" -> Mapping kernel text segments\n");
     for (uintptr_t text_addr = text_start; text_addr < text_end; text_addr += PAGE_SIZE) {
         uintptr_t phys = text_addr - kernel_address->virtual_base + kernel_address->physical_base;
-        map(&kernel_code_pmc, text_addr, phys, PTE_BIT_PRESENT);
+        map(&kernel_pmc, text_addr, phys, PTE_BIT_PRESENT);
     }
     kprintf(" -> Mapping the kernel rodata segment\n");
     for (uintptr_t rodata_addr = rodata_start; rodata_addr < rodata_end; rodata_addr += PAGE_SIZE) {
         uintptr_t phys = rodata_addr - kernel_address->virtual_base + kernel_address->physical_base;
-        map(&kernel_code_pmc, rodata_addr, phys, PTE_BIT_PRESENT | PTE_BIT_EXECUTE_DISABLE);
+        map(&kernel_pmc, rodata_addr, phys, PTE_BIT_PRESENT | PTE_BIT_EXECUTE_DISABLE);
     }
     kprintf(" -> Mapping the kernel data segment\n");
     for (uintptr_t data_addr = data_start; data_addr < data_end; data_addr += PAGE_SIZE) {
         uintptr_t phys = data_addr - kernel_address->virtual_base + kernel_address->physical_base;
-        map(&kernel_code_pmc, data_addr, phys, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE | PTE_BIT_EXECUTE_DISABLE);
+        map(&kernel_pmc, data_addr, phys, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE | PTE_BIT_EXECUTE_DISABLE);
     }
 
     kprintf(" -> Setting the kernel context into cr3\n");
-    setCTX(&kernel_code_pmc);
+    setCTX(&kernel_pmc);
     kprintf(" -> Flushing the cr3\n");
     tlb_flush();
     kprintf(" -> VMM initialization complete\n");

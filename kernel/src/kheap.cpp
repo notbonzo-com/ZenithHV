@@ -29,6 +29,7 @@ void init(size_t max_heap_size_pages)
     kernel_heap_bitmap += pmm::hhdm->offset;
     memset(kernel_heap_bitmap, 0x00, PAGE_SIZE);
 
+	kprintf(" ->> Kernel heap bitmap initialized at %p\n", kernel_heap_bitmap);
     kprintf(" -> %lu MiB dynamic memory available\n", kernel_heap_max_size_pages / (1024 * 1024));
 }
 
@@ -41,7 +42,7 @@ void *get_page_at(uintptr_t address)
     if (new_page == NULL) {
         return NULL;
     }
-    vmm::map(&vmm::kernel_code_pmc, address, (uintptr_t)new_page, vmm::PTE_BIT_PRESENT | vmm::PTE_BIT_EXECUTE_DISABLE | vmm::PTE_BIT_READ_WRITE);
+    vmm::map(&vmm::kernel_pmc, address, (uintptr_t)new_page, vmm::PTE_BIT_PRESENT | vmm::PTE_BIT_EXECUTE_DISABLE | vmm::PTE_BIT_READ_WRITE);
     BITMAP_SET_BIT(kernel_heap_bitmap, (address - kernel_heap_base_address) / PAGE_SIZE);
 
     return (void *)address;
@@ -54,7 +55,7 @@ void *return_page_at(uintptr_t address)
     }
     BITMAP_UNSET_BIT(kernel_heap_bitmap, (address - kernel_heap_base_address) / PAGE_SIZE);
 
-    vmm::unmap(&vmm::kernel_code_pmc, address, 1);
+    vmm::unmap(&vmm::kernel_pmc, address, 1);
 
     return 0;
 }

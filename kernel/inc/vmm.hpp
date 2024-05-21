@@ -11,7 +11,7 @@ typedef struct {
     uintptr_t pml4_address;
 } page_map_ctx;
 
-extern page_map_ctx kernel_code_pmc;
+extern page_map_ctx kernel_pmc;
 
 constexpr uint64_t PTE_BIT_PRESENT = 1ul << 0;
 constexpr uint64_t PTE_BIT_READ_WRITE = 1ul << 1;

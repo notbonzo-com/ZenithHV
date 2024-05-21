@@ -31,9 +31,9 @@ reinstall-limine:
 run:
 	@clear
 	@qemu-system-x86_64 -drive format=raw,file=build/image.hdd \
-			-m 4G -enable-kvm -cpu host -smp $(CORES) \
+			-m 4G -enable-kvm -cpu host -smp $(CORES) -M q35 \
 			-debugcon stdio \
-			--no-reboot --no-shutdown \
+			--no-reboot \
 			-serial file:build/serial_output.txt \
 			-monitor file:build/monitor_output.txt \
 			-d int -M smm=off \

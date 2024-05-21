@@ -11,7 +11,7 @@ typedef struct {
     uintptr_t pml4_address;
 } page_map_ctx;
 
-extern page_map_ctx kernel_code_pmc;
+extern page_map_ctx kernel_pmc;
 extern struct limine_kernel_address_response *kernel_address;
 
 void init();
