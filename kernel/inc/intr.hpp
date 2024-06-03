@@ -21,5 +21,6 @@ void registerVector(size_t vector, uintptr_t handler);
 void eraseVector(size_t vector);
 void setGate(uint8_t interrupt, uintptr_t base, int8_t flags);
 void stacktrace(regs_t *regs);
+extern "C" void default_interrupt_handler(regs_t* CPU);
 
 }

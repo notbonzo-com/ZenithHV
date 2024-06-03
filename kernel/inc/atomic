@@ -12,4 +12,32 @@ public:
     void r();
 };
 
+inline void disable_interrupts()
+{
+    asm volatile (
+        "cli"
+    );
+}
+
+inline void enable_interrupts()
+{
+    asm volatile (
+        "sti"
+    );
+}
+
+inline bool check_interrupts()
+{
+    uint64_t rflags;
+    __asm__ volatile (
+        "pushfq\n\t"
+        "pop %0"
+        : "=rm" (rflags)
+        :
+        : "memory"
+    );
+    return !!(rflags & (1 << 9));
+}
+
+
 } // namespace std

@@ -109,6 +109,16 @@
         "util": "cpp",
         "*.tcc": "cpp",
         "kprintf": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "array": "cpp",
+        "string_view": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "type_traits": "cpp",
+        "cmath": "cpp",
+        "limits": "cpp",
+        "atomic": "cpp",
+        "io": "cpp",
+        "gtest": "cpp"
     }
 }

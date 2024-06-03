@@ -9,7 +9,9 @@
 #include <kmalloc>
 #include <vector>
 
+#include <intr.hpp>
+
 extern "C" uint8_t kmain(void)
 {
-    return 0;
+
 }

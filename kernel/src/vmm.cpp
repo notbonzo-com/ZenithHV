@@ -6,6 +6,7 @@
 #include <kprintf>
 #include <atomic>
 #include <intr.hpp>
+// #include <_start/apic.hpp>
 
 namespace vmm {
 
@@ -75,6 +76,10 @@ void init()
     for (size_t off = 0; off < ALIGN_UP(pmm::totalBytesPmmStructures, PAGE_SIZE); off += PAGE_SIZE) {
         map(&kernel_pmc, (uintptr_t)pmm::pageBitmap + off, (uintptr_t)pmm::pageBitmap - pmm::hhdm->offset + off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
     }
+
+    // kprintf(" -> Mapping lapic\n");
+    // map(&kernel_pmc, ALIGN_DOWN((lapic::lapic_address + pmm::hhdm->offset), PAGE_SIZE), ALIGN_DOWN(lapic::lapic_address, PAGE_SIZE), PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
+    // lapic::lapic_address += pmm::hhdm->offset;
 
     kprintf(" -> Mapping usable memory and framebuffer\n");
     for (size_t i = 0; i < pmm::memmap->entry_count; i++) {
@@ -215,7 +220,7 @@ uintptr_t virt2phys(page_map_ctx *pmc, uintptr_t virt)
     return (pt[pt_index] & mask) | (virt & 0xFFF);
 }
 
-inline void setCTX(const page_map_ctx *pmc)
+void setCTX(const page_map_ctx *pmc)
 {
     __asm__ volatile (
         "movq %0, %%cr3\n"

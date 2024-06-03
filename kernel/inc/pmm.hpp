@@ -7,7 +7,6 @@
 
 namespace pmm
 {
-
 void *claim(size_t count);
 void free(void *ptr, size_t count);
 

@@ -1,4 +1,5 @@
 CORES := $(shell nproc)
+# CORES := 2
 
 all: kernel disk run
 
@@ -33,7 +34,7 @@ run:
 	@qemu-system-x86_64 -drive format=raw,file=build/image.hdd \
 			-m 4G -enable-kvm -cpu host -smp $(CORES) -M q35 \
 			-debugcon stdio \
-			--no-reboot \
+			--no-reboot --no-shutdown \
 			-serial file:build/serial_output.txt \
 			-monitor file:build/monitor_output.txt \
 			-d int -M smm=off \

@@ -10,7 +10,7 @@ namespace intr
 
 __attribute__((aligned(16))) entry_t entries[256];
 extern "C" {
-    uintptr_t handlers[256] = {0};
+    uintptr_t realHandler[256] = {0};
 }
 
 pointer_t idtr;
@@ -245,12 +245,12 @@ void init()
     kprintf(" -> Setting vectors 0-32 to default_interrupt_handler\n");
     for (size_t vector = 0; vector < 32; vector++) {
         setGate(vector, stubs[vector], 0b10001111);
-        handlers[vector] = (uintptr_t)default_interrupt_handler;
+        realHandler[vector] = (uintptr_t)default_interrupt_handler;
     }
     kprintf(" -> Setting vectors 32-256 to default_interrupt_handler\n");
     for (size_t vector = 32; vector < 256; vector++) {
         setGate(vector, stubs[vector], 0b10001110);
-        handlers[vector] = (uintptr_t)default_interrupt_handler;
+        realHandler[vector] = (uintptr_t)default_interrupt_handler;
     }
 
     kprintf(" -> Loading the IDT Pointer into the IDTR register");
@@ -264,10 +264,10 @@ void registerVector(size_t vector, uintptr_t handler)
 {
     registerVectorLock.a();
     debugf(" Registering Vector %d to handler %000x", vector, handler);
-    if (handlers[vector] != (uintptr_t)default_interrupt_handler || !handler) {
+    if (realHandler[vector] != (uintptr_t)default_interrupt_handler || !handler) {
         kpanic(NULL, "Failed to register vector!");
     }
-    handlers[vector] = handler;
+    realHandler[vector] = handler;
     registerVectorLock.r();
 }
 
@@ -276,10 +276,10 @@ std::klock eraseVectorLock;
 void eraseVector(size_t vector)
 {
     eraseVectorLock.a();
-    if (handlers[vector] == (uintptr_t)default_interrupt_handler || vector < 32) {
+    if (realHandler[vector] == (uintptr_t)default_interrupt_handler || vector < 32) {
         kpanic(NULL, "Failed to erase vector\n");
     }
-    handlers[vector] = (uintptr_t)default_interrupt_handler;
+    realHandler[vector] = (uintptr_t)default_interrupt_handler;
     eraseVectorLock.r();
 }
 
