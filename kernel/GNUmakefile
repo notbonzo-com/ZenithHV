@@ -14,14 +14,13 @@ define DEFAULT_VAR =
     endif
 endef
 
-
-override DEFAULT_CC := ~/toolchain/x86_64-elf/bin/x86_64-elf-gcc
+override DEFAULT_CC := gcc
 $(eval $(call DEFAULT_VAR,CC,$(DEFAULT_CC)))
 
-override DEFAULT_LD := ~/toolchain/x86_64-elf/bin/x86_64-elf-ld
+override DEFAULT_LD := ld
 $(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
 
-override DEFAULT_AS := ~/toolchain/x86_64-elf/bin/x86_64-elf-as
+override DEFAULT_AS := as
 $(eval $(call DEFAULT_VAR,AS,$(DEFAULT_AS)))
 
 override DEFAULT_CFLAGS := -g -O2 -pipe
@@ -33,7 +32,7 @@ $(eval $(call DEFAULT_VAR,CPPFLAGS,$(DEFAULT_CPPFLAGS)))
 override DEFAULT_CXXFLAGS := -g -O2 -pipe -std=c++17
 $(eval $(call DEFAULT_VAR,CXXFLAGS,$(DEFAULT_CXXFLAGS)))
 
-override DEFAULT_CXX := ~/toolchain/x86_64-elf/bin/x86_64-elf-g++
+override DEFAULT_CXX := g++
 $(eval $(call DEFAULT_VAR,CXX,$(DEFAULT_CXX)))
 
 override DEFAULT_NASMFLAGS := -F dwarf -g
@@ -43,6 +42,9 @@ override DEFAULT_LDFLAGS :=
 $(eval $(call DEFAULT_VAR,LDFLAGS,$(DEFAULT_LDFLAGS)))
 
 override CFLAGS += \
+	-ffreestanding \
+	-nostdlib \
+	-nostartfiles \
     -Wall \
     -Wextra \
     -std=gnu11 \
@@ -59,14 +61,17 @@ override CFLAGS += \
     -mno-sse \
     -mno-sse2 \
     -mno-red-zone \
-    -I ./inc/x86 \
-    -I ./ \
+	-I . \
     -I ./inc \
     -I ./cfg \
     -Wno-trigraphs
 
 override CPPFLAGS := \
+	-ffreestanding \
+	-nostdlib \
+	-nostartfiles \
     -I . \
+    -I ./cfg \
     -I ./cfg \
     -fno-omit-frame-pointer \
     -Wno-packed-bitfield-compat \
@@ -82,6 +87,9 @@ override CPPFLAGS := \
     -fno-rtti
 
 override LDFLAGS += \
+		-ffreestanding \
+		-nostdlib \
+		-nostartfiles \
         -T cfg/linker.ld \
         -ffreestanding \
         -O2 \
@@ -94,6 +102,7 @@ override NASMFLAGS += \
     -Wall \
     -f elf64
 
+# Yes I use the same makefile for C and C++, if you dont want c++ just dont add any .cpp files ¯\_(ツ)_/¯
 override CFILES := $(shell find -L * -type f -name '*.c')
 override ASFILES := $(shell find -L * -type f -name '*.S')
 override NASMFILES := $(shell find -L * -type f -name '*.asm')
@@ -101,7 +110,6 @@ override ASFILES := $(shell find -L * -type f -name '*.S')
 override HEADER_DEPS := $(addprefix ../build/obj/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 override CXXFILES := $(shell find -L * -type f -name '*.cpp')
 override OBJ := $(addprefix ../build/obj/,$(CFILES:.c=.c.o) $(CXXFILES:.cpp=.cpp.o) $(ASFILES:.S=.S.o) $(NASMFILES:.asm=.asm.o))
-
 
 .PHONY: all
 all: ../build/$(KERNEL)

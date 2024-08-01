@@ -1,11 +1,9 @@
-#include <_start/kheap.hpp>
-#include <pmm.hpp>
-#include <vmm.hpp>
-#include <_start/pmm.hpp>
-#include <intr.hpp>
+#include <sys/mm/kheap.hpp>
+#include <sys/mm/mmu.hpp>
+#include <sys/mm/pmm.hpp>
+#include <sys/idt.hpp>
 #include <util>
 #include <kprintf>
-#include <string>
 #include <atomic>
 
 std::klock malloc_lock;
@@ -27,7 +25,7 @@ void init(size_t max_heap_size_pages)
         intr::kpanic(NULL, "Not enough memory for kernel heap bitmap");
     }
     kernel_heap_bitmap += pmm::hhdm->offset;
-    memset(kernel_heap_bitmap, 0x00, PAGE_SIZE);
+    std::memset(kernel_heap_bitmap, 0x00, PAGE_SIZE);
 
 	kprintf(" ->> Kernel heap bitmap initialized at %p\n", kernel_heap_bitmap);
     kprintf(" -> %lu MiB dynamic memory available\n", kernel_heap_max_size_pages / (1024 * 1024));
@@ -42,7 +40,7 @@ void *get_page_at(uintptr_t address)
     if (new_page == NULL) {
         return NULL;
     }
-    vmm::map(&vmm::kernel_pmc, address, (uintptr_t)new_page, vmm::PTE_BIT_PRESENT | vmm::PTE_BIT_EXECUTE_DISABLE | vmm::PTE_BIT_READ_WRITE);
+    mmu::map(&mmu::kernel_pmc, address, (uintptr_t)new_page, mmu::PTE_BIT_PRESENT | mmu::PTE_BIT_EXECUTE_DISABLE | mmu::PTE_BIT_READ_WRITE);
     BITMAP_SET_BIT(kernel_heap_bitmap, (address - kernel_heap_base_address) / PAGE_SIZE);
 
     return (void *)address;
@@ -55,7 +53,7 @@ void *return_page_at(uintptr_t address)
     }
     BITMAP_UNSET_BIT(kernel_heap_bitmap, (address - kernel_heap_base_address) / PAGE_SIZE);
 
-    vmm::unmap(&vmm::kernel_pmc, address, 1);
+    mmu::unmap(&mmu::kernel_pmc, address, 1);
 
     return 0;
 }

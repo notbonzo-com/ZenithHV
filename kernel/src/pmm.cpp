@@ -1,11 +1,9 @@
-#include <_start/pmm.hpp>
-#include <pmm.hpp>
+#include <sys/mm/pmm.hpp>
 #include <limine.h>
-#include <intr.hpp>
+#include <sys/idt.hpp>
 
 #include <util>
 #include <kprintf>
-#include <string>
 #include <atomic>
 
 namespace pmm {
@@ -84,7 +82,7 @@ void init()
         if (entry->type == LIMINE_MEMMAP_USABLE && entry->length >= totalBytesPmmStructures) {
             kprintf(" -> Suitable location found at entry %zu, base %p\n", i, entry->base);
             pageBitmap = (uint8_t*)(entry->base + hhdm->offset);
-            memset(pageBitmap, 0xFF, bitmapSizeBytes);
+            std::memset(pageBitmap, 0xFF, bitmapSizeBytes);
 
             usableEntries = (UsableEntry*)(entry->base + hhdm->offset + bitmapSizeBytes);
 

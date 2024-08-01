@@ -3,7 +3,7 @@
 #include <stddef.h>  // for size_t
 #include <new>
 #include <util>
-#include <intr.hpp>
+#include <sys/idt.hpp>
 
 namespace std {
 
@@ -22,6 +22,37 @@ public:
     size_t size() const noexcept;
     size_t capacity() const noexcept;
 
+    // Iterator support
+    class iterator {
+    public:
+        iterator(T* ptr) : ptr(ptr) {}
+
+        T& operator*() const { return *ptr; }
+        T* operator->() { return ptr; }
+
+        // Prefix increment
+        iterator& operator++() { 
+            ++ptr; 
+            return *this; 
+        }  
+
+        // Postfix increment
+        iterator operator++(int) { 
+            iterator tmp = *this; 
+            ++(*this); 
+            return tmp; 
+        }
+
+        friend bool operator==(const iterator& a, const iterator& b) { return a.ptr == b.ptr; }
+        friend bool operator!=(const iterator& a, const iterator& b) { return a.ptr != b.ptr; }
+
+    private:
+        T* ptr;
+    };
+
+    iterator begin() { return iterator(data); }
+    iterator end() { return iterator(data + _size); }
+
 private:
     T* data;
     size_t _size;
@@ -38,14 +69,14 @@ template <typename T>
 vector<T>::~vector() noexcept {
     destroy_elements();
     if (data) {
-        kfree(data);
+        ufree(data);
     }
 }
 
 template <typename T>
 vector<T>::vector(const vector& other) : data(nullptr), _size(0), _capacity(0) {
     if (other._size > 0) {
-        data = static_cast<T*>(kmalloc(other._capacity * sizeof(T)));
+        data = static_cast<T*>(umalloc(other._capacity * sizeof(T)));
         if (!data) {
             intr::kpanic(nullptr, "bad_alloc()");
         }
@@ -62,7 +93,7 @@ vector<T>& vector<T>::operator=(const vector& other) {
     if (this != &other) {
         destroy_elements();
         if (data) {
-            kfree(data);
+            ufree(data);
         }
 
         data = nullptr;
@@ -70,7 +101,7 @@ vector<T>& vector<T>::operator=(const vector& other) {
         _capacity = 0;
 
         if (other._size > 0) {
-            data = static_cast<T*>(kmalloc(other._capacity * sizeof(T)));
+            data = static_cast<T*>(umalloc(other._capacity * sizeof(T)));
             if (!data) {
                 intr::kpanic(nullptr, "bad_alloc()");
             }
@@ -129,7 +160,7 @@ size_t vector<T>::capacity() const noexcept {
 
 template <typename T>
 void vector<T>::resize(size_t new_capacity) {
-    T* new_data = static_cast<T*>(kmalloc(new_capacity * sizeof(T)));
+    T* new_data = static_cast<T*>(umalloc(new_capacity * sizeof(T)));
     if (!new_data) {
         intr::kpanic(nullptr, "bad_alloc()");
     }
@@ -138,7 +169,7 @@ void vector<T>::resize(size_t new_capacity) {
     }
     destroy_elements();  // Destroy old elements
     if (data) {
-        kfree(data);  // Free old memory
+        ufree(data);  // Free old memory
     }
     data = new_data;
     _capacity = new_capacity;
@@ -152,5 +183,4 @@ void vector<T>::destroy_elements() noexcept {
     _size = 0;  // Reset size
 }
 
-
-}
+}  // namespace std

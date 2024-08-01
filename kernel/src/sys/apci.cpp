@@ -1,19 +1,17 @@
-#include <_start/acpi.hpp>
-#include <_start/vmm.hpp>
-#include <_start/pmm.hpp>
-#include <intr.hpp>
-#include <pmm.hpp>
+#include <sys/apci.hpp>
+#include <sys/mm/mmu.hpp>
+#include <sys/mm/pmm.hpp>
+#include <sys/idt.hpp>
 #include <kmalloc>
 #include <kprintf>
 #include <new>
 #include <vector>
 #include <atomic>
 #include <util>
-#include <string>
 
-namespace acpi {
+namespace apci {
 
-bool xsdt_present = false;
+static bool xsdt_present = false;
 
 volatile struct RSDP *rsdp_ptr = NULL;
 volatile struct RSDT *rsdt_ptr = NULL;
@@ -50,8 +48,8 @@ void parse(void)
         intr::kpanic(NULL, "ACPI is not supported");
     }
 	rsdp_ptr = (struct RSDP*)rsdp_request.response->address;
-    vmm::map(&vmm::kernel_pmc, ALIGN_DOWN((uintptr_t)rsdp_ptr, PAGE_SIZE),
-        ALIGN_DOWN(((uintptr_t)rsdp_ptr - pmm::hhdm->offset), PAGE_SIZE), vmm::PTE_BIT_PRESENT | vmm::PTE_BIT_READ_WRITE);
+    mmu::map(&mmu::kernel_pmc, ALIGN_DOWN((uintptr_t)rsdp_ptr, PAGE_SIZE),
+        ALIGN_DOWN(((uintptr_t)rsdp_ptr - pmm::hhdm->offset), PAGE_SIZE), mmu::PTE_BIT_PRESENT | mmu::PTE_BIT_READ_WRITE);
 
     xsdt_present = (rsdp_ptr->revision >= 2) ? true : false;
 
@@ -60,8 +58,8 @@ void parse(void)
         intr::kpanic(NULL, "ACPI is not supported");
     }
 
-    vmm::map(&vmm::kernel_pmc, ALIGN_DOWN((uintptr_t)rsdt_ptr, PAGE_SIZE),
-        ALIGN_DOWN(((uintptr_t)rsdt_ptr - pmm::hhdm->offset), PAGE_SIZE), vmm::PTE_BIT_PRESENT | vmm::PTE_BIT_READ_WRITE);
+    mmu::map(&mmu::kernel_pmc, ALIGN_DOWN((uintptr_t)rsdt_ptr, PAGE_SIZE),
+        ALIGN_DOWN(((uintptr_t)rsdt_ptr - pmm::hhdm->offset), PAGE_SIZE), mmu::PTE_BIT_PRESENT | mmu::PTE_BIT_READ_WRITE);
 
     size_t entry_count = (rsdt_ptr->header.length - sizeof(struct RSDT)) / (xsdt_present ? 8 : 4);
 
@@ -78,8 +76,8 @@ void parse(void)
             head = (struct SDTHeader *)(rsdt_table[i] + pmm::hhdm->offset);
         }
 
-        vmm::map(&vmm::kernel_pmc, ALIGN_DOWN((uintptr_t)head, PAGE_SIZE),
-            ALIGN_DOWN(((uintptr_t)head - pmm::hhdm->offset), PAGE_SIZE), vmm::PTE_BIT_PRESENT | vmm::PTE_BIT_READ_WRITE);
+        mmu::map(&mmu::kernel_pmc, ALIGN_DOWN((uintptr_t)head, PAGE_SIZE),
+            ALIGN_DOWN(((uintptr_t)head - pmm::hhdm->offset), PAGE_SIZE), mmu::PTE_BIT_PRESENT | mmu::PTE_BIT_READ_WRITE);
     }
 
 
@@ -113,7 +111,7 @@ void *get_sdt(const char signature[4])
             head = (struct SDTHeader *)(rsdt_table[i] + pmm::hhdm->offset);
         }
 
-        if (!memcmp(head->signature, signature, 4)) {
+        if (!std::memcmp(head->signature, signature, 4)) {
             kprintf(" -> %4s found at (pa) 0x%p of length %-u\n",
                 signature, (uintptr_t)head - pmm::hhdm->offset, head->length);
             return head;
@@ -128,15 +126,12 @@ void parse_madt(volatile struct MADT *madt)
     for (uintptr_t off = 0; off < madt->header.length - sizeof(struct MADT); ) {
         struct MADTHeader *madt_hdr = (struct MADTHeader *)(madt->entries + off);
         if (madt_hdr->type == MADT_ENTRY_PROCESSOR_LAPIC) {
-            // lapis
             lapics.push_back((LAPIC*)madt_hdr);
         }
         else if (madt_hdr->type == MADT_ENTRY_IO_APIC) {
-            // ioapic
             ioapics.push_back((IOAPIC*)madt_hdr);
         }
         else if (madt_hdr->type == MADT_ENTRY_INTERRUPT_SOURCE_OVERRIDE) {
-            // iso
             isos.push_back((ISO*)madt_hdr);
         }
 

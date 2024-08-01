@@ -40,8 +40,6 @@
 extern "C" {
 #endif
 
-extern const char *kernel_okay_string;
-
 
 /**
  * Output a character to a custom device like UART, used by the printf() function

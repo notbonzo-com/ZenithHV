@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <util>
 
+namespace apci {
+
 constexpr uint8_t MADT_ENTRY_PROCESSOR_LAPIC = 0x0;
 constexpr uint8_t MADT_ENTRY_IO_APIC = 0x1;
 constexpr uint8_t MADT_ENTRY_INTERRUPT_SOURCE_OVERRIDE = 0x2;
@@ -25,9 +27,7 @@ constexpr uint8_t MADT_ENTRY_GIC_REDISTRIBUTOR = 0xE;
 constexpr uint8_t MADT_ENTRY_GIC_INTERRUPT_TRANSLATION_SERVICE = 0xF;
 constexpr uint8_t MADT_ENTRY_MP_WAKEUP = 0x10;
 
-namespace acpi {
-
-// ACPI RSDP Structure
+// APCI RSDP Structure
 struct __pack RSDP {
     char signature[8];
     uint8_t checksum;
@@ -39,8 +39,7 @@ struct __pack RSDP {
     uint8_t extended_checksum;
     uint8_t reserved[3];
 };
-
-// ACPI SDT Header Structure
+// APCI SDT Header Structure
 struct SDTHeader {
     char signature[4];
     uint32_t length;
@@ -53,11 +52,10 @@ struct SDTHeader {
     uint32_t creator_revision;
 };
 
-// ACPI RSDT Structure
+// APCI RSDT Structure
 struct RSDT {
     SDTHeader header;
 };
-
 // Generic Address Structure (GAS)
 struct __pack GAS {
     uint8_t address_space;
@@ -66,8 +64,7 @@ struct __pack GAS {
     uint8_t access_size;
     uint64_t address;
 };
-
-// ACPI FADT Structure
+// APCI FADT Structure
 struct FADT {
     SDTHeader header;
     uint32_t firmware_ctrl;
@@ -77,8 +74,8 @@ struct FADT {
     uint8_t preferred_power_management_profile;
     uint16_t sci_interrupt;
     uint32_t smi_command_port;
-    uint8_t acpi_enable;
-    uint8_t acpi_disable;
+    uint8_t APCI_enable;
+    uint8_t APCI_disable;
     uint8_t s4bios_req;
     uint8_t pstate_control;
     uint32_t pm1a_event_block;
@@ -127,16 +124,14 @@ struct FADT {
     GAS x_gpe0_block;
     GAS x_gpe1_block;
 };
-
-// ACPI MADT Structure
+// APCI MADT Structure
 struct MADT {
     SDTHeader header;
     uint32_t lapic_address_phys;
     uint32_t flags;
     uint8_t entries[];
 };
-
-// ACPI MCFG Entry Structure
+// APCI MCFG Entry Structure
 struct __pack MCFGEntry {
     uint64_t base;
     uint16_t segment;
@@ -144,29 +139,25 @@ struct __pack MCFGEntry {
     uint8_t host_end;
     uint32_t reserved;
 };
-
-// ACPI MCFG Structure
+// APCI MCFG Structure
 struct __pack MCFG {
     SDTHeader header;
     uint64_t reserved;
     MCFGEntry entries[];
 };
-
-// ACPI MADT Header Structure
+// APCI MADT Header Structure
 struct __pack MADTHeader {
     uint8_t type;
     uint8_t length;
 };
-
-// ACPI LAPIC Structure
+// APCI LAPIC Structure
 struct __pack LAPIC {
     MADTHeader header;
-    uint8_t acpi_processor_uid;
+    uint8_t APCI_processor_uid;
     uint8_t apic_id;
     uint32_t flags;
 };
-
-// ACPI IOAPIC Structure
+// APCI IOAPIC Structure
 struct __pack IOAPIC {
     MADTHeader header;
     uint8_t io_apic_id;
@@ -174,7 +165,7 @@ struct __pack IOAPIC {
     uint32_t io_apic_address;
     uint32_t global_system_interrupt_base;
 };
-// ACPI ISO Structure
+// APCI ISO Structure
 struct __pack ISO {
     MADTHeader header;
     uint8_t bus_isa;
@@ -198,4 +189,4 @@ extern volatile FADT* fadt_ptr;
 extern volatile MADT* madt_ptr;
 extern volatile MCFG* mcfg_ptr;
 
-} // namespace acpi
+} // namespace APCI

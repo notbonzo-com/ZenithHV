@@ -1,17 +1,27 @@
 #include <stdint.h>
 
-#include <gdt.hpp>
-#include <pmm.hpp>
+#include <sys/gdt.hpp>
+#include <sys/mm/pmm.hpp>
 
 #include <gtest>
-#include <string>
 
 #include <kmalloc>
 #include <vector>
+#include <ramfs>
 
-#include <intr.hpp>
+#include <sys/idt.hpp>
+#include <sys/apic.hpp>
+
+struct test
+{
+	uint8_t value;
+};
+
+test test1 = { .value = 0, };
 
 extern "C" uint8_t kmain(void)
 {
 
+
+	return 0;
 }

@@ -1,0 +1,22 @@
+#pragma once
+
+#include <stddef.h>
+#include <stdint.h>
+
+namespace ramfs {
+
+struct RAMFSFile {
+    const char* name;
+    size_t size;
+    const uint8_t* data;
+	bool isDirectory;
+    RAMFSFile* next;
+};
+
+void init();
+RAMFSFile* open(const char* filename);
+size_t read(RAMFSFile* file, uint8_t* buffer, size_t size);
+bool dir(RAMFSFile* folder);
+void cleanup();
+
+} // namespace ramfs

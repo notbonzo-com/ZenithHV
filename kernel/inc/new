@@ -2,10 +2,10 @@
 
 #include <stddef.h>
 #include <kmalloc>
-#include <intr.hpp>
+#include <sys/idt.hpp>
 
 inline void* operator new(size_t size) {
-    void* ptr = kmalloc(size);
+    void* ptr = umalloc(size);
     if (!ptr) {
         intr::kpanic(nullptr, "Failed to allocate memory");
     }
@@ -14,18 +14,18 @@ inline void* operator new(size_t size) {
 
 inline void operator delete(void* ptr) noexcept {
     if (ptr) {
-        kfree(ptr);
+        ufree(ptr);
     }
 }
 
 inline void operator delete(void* ptr, size_t) noexcept {
     if (ptr) {
-        kfree(ptr);
+        ufree(ptr);
     }
 }
 
 inline void* operator new[](size_t size) {
-    void* ptr = kmalloc(size);
+    void* ptr = umalloc(size);
     if (!ptr) {
         intr::kpanic(nullptr, "Failed to allocate memory");
     }
@@ -34,13 +34,13 @@ inline void* operator new[](size_t size) {
 
 inline void operator delete[](void* ptr) noexcept {
     if (ptr) {
-        kfree(ptr);
+        ufree(ptr);
     }
 }
 
 inline void operator delete[](void* ptr, size_t) noexcept {
     if (ptr) {
-        kfree(ptr);
+        ufree(ptr);
     }
 }
 

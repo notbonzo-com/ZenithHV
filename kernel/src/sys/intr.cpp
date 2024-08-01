@@ -1,21 +1,23 @@
-#include <_start/idt.hpp>
-#include <intr.hpp>
+#include <sys/idt.hpp>
 #include <util>
-#include <atomic>
+#include <io>
 #include <kprintf>
-#include <string>
+#include <atomic>
 
-namespace intr
-{
+namespace intr {
 
 __attribute__((aligned(16))) entry_t entries[256];
 extern "C" {
     uintptr_t realHandler[256] = {0};
 }
-
 pointer_t idtr;
 
-static const char * strings[32] = {
+extern "C" void default_interrupt_handler(regs_t* CPU)
+{
+    kpanic(CPU, "?");
+}
+
+static const char* strings[32] = {
     "Division by Zero",
     "Debug",
     "Non-Maskable-Interrupt",
@@ -50,11 +52,6 @@ static const char * strings[32] = {
     "RESERVED VECTOR"
 };
 
-struct stacktrace_tree {
-    struct stacktrace_tree *rbp;
-    uintptr_t rsp;
-};
-
 void stacktrace(regs_t *regs) {
     kprintf("┌────────────────────────────────────────────────┐\n");
     kprintf("│   Stack Trace                                  │\n");
@@ -72,6 +69,19 @@ void stacktrace(regs_t *regs) {
     }
 
     kprintf("└────────────────────────────────────────────────┘\n");
+}
+
+void setGate(uint8_t interrupt, uintptr_t base, int8_t flags)
+{
+    entry_t *descriptor = &entries[interrupt];
+
+    descriptor->offset_low = base & 0xFFFF;
+    descriptor->selector = 0x8;
+    descriptor->ist = 0;
+    descriptor->attribute = flags;
+    descriptor->offset_mid = (base >> 16) & 0xFFFF;
+    descriptor->offset_high = (base >> 32) & 0xFFFFFFFF;
+    descriptor->zero = 0;
 }
 
 void capture_regs(regs_t *context) {
@@ -129,7 +139,6 @@ static void print_register(const char *name, uint64_t value) {
     kprintf("%-4s: 0x%016llx", name, value); 
 }
 
-
 void kpanic(regs_t *nregs, const char* str)
 {
     regs_t regs;
@@ -140,8 +149,8 @@ void kpanic(regs_t *nregs, const char* str)
         regs.interrupt = 0xDEADBEEF;
     } else {
         // regs = *nregs; // May page fault (causing a double and then tripple fault), scary!
-        // Guess what! It does tripple fault!!!
-        memcpy(&regs, nregs, sizeof(regs_t));
+        // Guess what! It does tripple fault!!! I SPENT TWO FUCKING HOURS DEBUGGING THIS SHIT WHILE MAKING THE VMM
+        std::memcpy(&regs, nregs, sizeof(regs_t));
     }
 
     kprintf("----------------------------------------------------------\n");
@@ -224,10 +233,10 @@ void kpanic(regs_t *nregs, const char* str)
 void load()
 {
     kprintf("  --> Loading the IDT\n");
-    kprintf("  ---> Offset: 0x%00x\n", (uintptr_t)entries);
-    idtr.offset = (uintptr_t)entries;
+    kprintf("  ---> Offset: 0x%00x\n", reinterpret_cast<uintptr_t>(entries));
+    idtr.offset = reinterpret_cast<uintptr_t>(entries);
     kprintf("  ---> Limit: 0x%00x\n", (uint16_t)(sizeof(entries) - 1));
-    idtr.limit = (uint16_t)(sizeof(entries) - 1);
+    idtr.limit = static_cast<uint16_t>(sizeof(entries) - 1);
 
     asm volatile (
         "lidt %0"
@@ -235,22 +244,17 @@ void load()
     );
 }
 
-extern "C" void default_interrupt_handler(regs_t* CPU)
-{
-    kpanic(CPU, "?");
-}
-
 void init()
 {
     kprintf(" -> Setting vectors 0-32 to default_interrupt_handler\n");
     for (size_t vector = 0; vector < 32; vector++) {
         setGate(vector, stubs[vector], 0b10001111);
-        realHandler[vector] = (uintptr_t)default_interrupt_handler;
+        realHandler[vector] = reinterpret_cast<uintptr_t>(default_interrupt_handler);
     }
     kprintf(" -> Setting vectors 32-256 to default_interrupt_handler\n");
     for (size_t vector = 32; vector < 256; vector++) {
         setGate(vector, stubs[vector], 0b10001110);
-        realHandler[vector] = (uintptr_t)default_interrupt_handler;
+        realHandler[vector] = reinterpret_cast<uintptr_t>(default_interrupt_handler);
     }
 
     kprintf(" -> Loading the IDT Pointer into the IDTR register");
@@ -258,42 +262,30 @@ void init()
     kprintf(" -> IDT initialization complete\n");
 }
 
-std::klock registerVectorLock;
+std::klock regvec_lock;
+std::klock ervec_lock;
+VolatileVector::VolatileVector(size_t vectorS, handler_t handler) {
+	std::autolock regvec_alock(&regvec_lock);
+    vector = vectorS;
+    debugf("Registering Vector %zu to handler %p", vector, (void*)handler);
 
-void registerVector(size_t vector, uintptr_t handler)
-{
-    registerVectorLock.a();
-    debugf(" Registering Vector %d to handler %000x", vector, handler);
-    if (realHandler[vector] != (uintptr_t)default_interrupt_handler || !handler) {
-        kpanic(NULL, "Failed to register vector!");
-    }
-    realHandler[vector] = handler;
-    registerVectorLock.r();
+    previousHandler = realHandler[vector];
+    // if (realHandler[vector] != reinterpret_cast<uintptr_t>(default_interrupt_handler) || !handler) {
+    //     kprintf("Vector %zu already registered\n", vector);
+    // }
+
+    realHandler[vector] = reinterpret_cast<uintptr_t>(handler);
 }
 
-std::klock eraseVectorLock;
+VolatileVector::~VolatileVector() {
+	std::autolock ervec_alock(&ervec_lock);
+    debugf("Restoring Vector %zu to handler %p", vector, (void*)previousHandler);
 
-void eraseVector(size_t vector)
-{
-    eraseVectorLock.a();
-    if (realHandler[vector] == (uintptr_t)default_interrupt_handler || vector < 32) {
-        kpanic(NULL, "Failed to erase vector\n");
-    }
-    realHandler[vector] = (uintptr_t)default_interrupt_handler;
-    eraseVectorLock.r();
-}
+    // if (realHandler[vector] == reinterpret_cast<uintptr_t>(default_interrupt_handler)) {
+    //     kprintf("Vector %zu not registered\n", vector);
+    // }
 
-void setGate(uint8_t interrupt, uintptr_t base, int8_t flags)
-{
-    entry_t *descriptor = &entries[interrupt];
-
-    descriptor->offset_low = base & 0xFFFF;
-    descriptor->selector = 0x8;
-    descriptor->ist = 0;
-    descriptor->attribute = flags;
-    descriptor->offset_mid = (base >> 16) & 0xFFFF;
-    descriptor->offset_high = (base >> 32) & 0xFFFFFFFF;
-    descriptor->zero = 0;
+    realHandler[vector] = previousHandler;
 }
 
 }

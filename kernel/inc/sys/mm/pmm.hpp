@@ -6,6 +6,8 @@
 
 #include <util>
 
+#define PAGE_SIZE 0x1000ul
+
 namespace pmm {
 
 struct __pack UsableEntry {
@@ -32,4 +34,6 @@ extern uint64_t highestAddressUsable;
 
 void init(void);
 
+void *claim(size_t count);
+void free(void *ptr, size_t count);
 }

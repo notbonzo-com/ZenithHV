@@ -12,6 +12,17 @@ public:
     void r();
 };
 
+class autolock {
+    klock *lock;
+public:
+    autolock(klock *lock) : lock(lock) {
+        lock->a();
+    }
+    ~autolock() {
+        lock->r();
+    }
+};
+
 inline void disable_interrupts()
 {
     asm volatile (

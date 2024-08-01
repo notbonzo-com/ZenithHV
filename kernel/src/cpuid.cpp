@@ -1,6 +1,5 @@
 #include <cpuid.hpp>
-#include <intr.hpp>
-#include <string>
+#include <sys/idt.hpp>
 
 extern "C" bool __get_cpuid(uint32_t op, uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx) {
     __asm__ __volatile__(
@@ -92,13 +91,13 @@ void cpuid_common(struct cpuid_data_common *data)
 {
     cpuid_leaf0x0(data);
     cpuid_leaf0x1(data);
-    if (!memcmp(data->cpu_vendor, "GenuineIntel", 13)) {
+    if (!std::memcmp(data->cpu_vendor, "GenuineIntel", 13)) {
         // intel only
         cpuid_leaf_0x80000002(data);
         cpuid_leaf_0x80000003(data);
         cpuid_leaf_0x80000004(data);
     } else {
-        memset(data->cpu_name_string, 0, 49);
+        std::memset(data->cpu_name_string, 0, 49);
     }
 }
 

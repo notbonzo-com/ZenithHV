@@ -2,10 +2,14 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <limine.h>
 
-namespace vmm
+namespace mmu
 {
 
+extern struct limine_kernel_address_response *kernel_address;
+
+void init();
 
 typedef struct {
     uintptr_t pml4_address;
@@ -24,6 +28,7 @@ constexpr uint64_t PTE_BIT_PAT_SUPPORTED = 1ul << 7;
 constexpr uint64_t PTE_BIT_GLOBAL = 1ul << 8;
 constexpr uint64_t PTE_BIT_EXECUTE_DISABLE = 1ul << 63;
 
+void setCTX(const page_map_ctx* pmc);
 void map(page_map_ctx *pmc, uintptr_t va, uintptr_t pa, uint64_t flags);
 bool unmap(page_map_ctx *pmc, uintptr_t va, bool free_pa);
 uintptr_t virt2phys(page_map_ctx *pmc, uintptr_t virt);

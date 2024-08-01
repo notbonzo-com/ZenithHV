@@ -17,8 +17,6 @@
 #define ALIGN_UP(x, base) (((x) + (base) - 1) & ~((base) - 1))
 #define ALIGN_DOWN(x, base) ((x) & ~((base) - 1))
 
-#define EXTRACT_BITS(value, start_index, end_index) (((value) & (((1ul << ((end_index) - (start_index) + 1)) - 1) << (start_index))) >> (start_index))
-
 #define POW(base, exponent) ({ \
     uint64_t out = 1; \
     for (uint64_t i = 0; i < exponent; i++) { \
@@ -31,26 +29,298 @@
 #define __pack __attribute__((packed))
 extern "C" bool __get_cpuid(uint32_t op, uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx);
 
+using ssize_t = long signed int;
+
 namespace std {
+    template <typename T>
+    struct make_signed;
 
-template<typename T>
-struct remove_reference {
-    typedef T type;
-};
+    template <>
+    struct make_signed<unsigned char> { typedef signed char type; };
 
-template<typename T>
-struct remove_reference<T&> {
-    typedef T type;
-};
+    template <>
+    struct make_signed<unsigned short> { typedef short type; };
 
-template<typename T>
-struct remove_reference<T&&> {
-    typedef T type;
-};
+    template <>
+    struct make_signed<unsigned int> { typedef int type; };
 
-template<typename T>
-constexpr typename std::remove_reference<T>::type&& move(T&& arg) noexcept {
-    return static_cast<typename std::remove_reference<T>::type&&>(arg);
+    template <>
+    struct make_signed<unsigned long> { typedef long type; };
+
+    template <>
+    struct make_signed<unsigned long long> { typedef long long type; };
+
+    template <>
+    struct make_signed<char> { typedef signed char type; };
+
+    template <>
+    struct make_signed<short> { typedef short type; };
+
+    template <>
+    struct make_signed<int> { typedef int type; };
+
+    template <>
+    struct make_signed<long> { typedef long type; };
+
+    template <>
+    struct make_signed<long long> { typedef long long type; };
+
+    template <typename T>
+    using make_signed_t = typename make_signed<T>::type;
+
+    template <typename T>
+    constexpr T max(T x, T y) { return x > y ? x : y; }
+
+    template <typename T>
+    constexpr T min(T x, T y) { return x < y ? x : y; }
+
+    template <typename T>
+    constexpr T div_roundup(T x, T y) { return (x + y - 1) / y; }
+
+    template <typename T>
+    constexpr T div_rounddown(T x, T y) { return x / y; }
+
+    template <typename T>
+    constexpr T align_up(T x, T base) { return (x + base - 1) & ~(base - 1); }
+
+    template <typename T>
+    constexpr T align_down(T x, T base) { return x & ~(base - 1); }
+
+    template <typename T1, typename T2>
+    constexpr auto max(T1 x, T2 y) -> decltype(x > y ? x : y) { 
+        return x > y ? x : y; 
+    }
+
+    template <typename T1, typename T2>
+    constexpr auto min(T1 x, T2 y) -> decltype(x < y ? x : y) { 
+        return x < y ? x : y; 
+    }
+
+    template <typename T1, typename T2>
+    constexpr auto div_roundup(T1 x, T2 y) -> decltype((x + y - 1) / y) { 
+        return (x + y - 1) / y; 
+    }
+
+    template <typename T1, typename T2>
+    constexpr auto div_rounddown(T1 x, T2 y) -> decltype(x / y) { 
+        return x / y; 
+    }
+
+    template <typename T1, typename T2>
+    constexpr auto align_up(T1 x, T2 base) -> decltype((x + base - 1) & ~(base - 1)) { 
+        return (x + base - 1) & ~(base - 1); 
+    }
+
+    template <typename T1, typename T2>
+    constexpr auto align_down(T1 x, T2 base) -> decltype(x & ~(base - 1)) { 
+        return x & ~(base - 1); 
+    }
+
+    template <typename T>
+    constexpr T extract_bits(T value, int start_index, int end_index) {
+        return (value & (((1ul << (end_index - start_index + 1)) - 1) << start_index)) >> start_index;
+    }
+
+    template <typename T>
+    constexpr T pow(T base, T exponent) {
+        T out = 1;
+        for (T i = 0; i < exponent; ++i) {
+            out *= base;
+        }
+        return out;
+    }
+
+    template<typename T>
+    struct remove_reference { typedef T type; };
+
+    template<typename T>
+    struct remove_reference<T&> { typedef T type; };
+
+    template<typename T>
+    struct remove_reference<T&&> { typedef T type; };
+
+    template<typename T>
+    constexpr typename remove_reference<T>::type&& move(T&& arg) noexcept {
+        return static_cast<typename remove_reference<T>::type&&>(arg);
+    }
+    
+    void* memcpy(void* dest, const void* src, size_t n);
+    void* memmove(void* dest, const void* src, size_t n);
+    void* memset(void* dest, int val, size_t n);
+    int memcmp(const void* ptr1, const void* ptr2, size_t num);
+
+    class Bitmap {
+    private:
+        uint8_t* bitmap;
+        size_t size;
+
+    public:
+        Bitmap(uint8_t* bitmap, size_t size) : bitmap(bitmap), size(size) {}
+        Bitmap() : bitmap(nullptr), size(0) {}
+        
+        Bitmap(Bitmap&& other) noexcept
+            : bitmap(other.bitmap), size(other.size) {
+            other.bitmap = nullptr;
+            other.size = 0;
+        }
+        Bitmap& operator=(Bitmap&& other) noexcept {
+            if (this != &other) {
+                bitmap = other.bitmap;
+                size = other.size;
+                other.bitmap = nullptr;
+                other.size = 0;
+            }
+            return *this;
+        }
+        bool operator[](size_t bit_index) const {
+            return read(bit_index);
+        }
+        Bitmap(const Bitmap&) = delete;
+        Bitmap& operator=(const Bitmap&) = delete;
+        ~Bitmap() = default;
+        void set(size_t bit_index);
+        void unset(size_t bit_index);
+        bool read(size_t bit_index) const;
+        size_t bit_size() const;
+        ssize_t find_first_free() const;
+        size_t count_set() const;
+        size_t count_unset() const;
+        void resize(uint8_t* new_bitmap, size_t new_size);
+        uint8_t* data();
+        size_t byte_size() const;
+    };
 }
 
+namespace std {
+    template <bool B, class T = void>
+    struct enable_if {};
+
+    template <class T>
+    struct enable_if<true, T> { typedef T type; };
+
+    template <typename T>
+    struct is_integral {
+        static constexpr bool value = false;
+    };
+
+    template <> struct is_integral<bool> { static constexpr bool value = true; };
+    template <> struct is_integral<char> { static constexpr bool value = true; };
+    template <> struct is_integral<signed char> { static constexpr bool value = true; };
+    template <> struct is_integral<unsigned char> { static constexpr bool value = true; };
+    template <> struct is_integral<short> { static constexpr bool value = true; };
+    template <> struct is_integral<unsigned short> { static constexpr bool value = true; };
+    template <> struct is_integral<int> { static constexpr bool value = true; };
+    template <> struct is_integral<unsigned int> { static constexpr bool value = true; };
+    template <> struct is_integral<long> { static constexpr bool value = true; };
+    template <> struct is_integral<unsigned long> { static constexpr bool value = true; };
+    template <> struct is_integral<long long> { static constexpr bool value = true; };
+    template <> struct is_integral<unsigned long long> { static constexpr bool value = true; };
+}
+
+namespace std {
+    template <typename T>
+    void swap(T& a, T& b) noexcept {
+        T temp = move(a);
+        a = move(b);
+        b = move(temp);
+    }
+}
+
+namespace std {
+    template <typename T>
+    T&& forward(typename remove_reference<T>::type& t) noexcept {
+        return static_cast<T&&>(t);
+    }
+
+    template <typename T>
+    T&& forward(typename remove_reference<T>::type&& t) noexcept {
+        // static_assert(!is_lvalue_reference<T>::value, "Cannot forward an rvalue as an lvalue.");
+        return static_cast<T&&>(t);
+    }
+}
+
+namespace std {
+    template <typename T, size_t N>
+    constexpr size_t array_size(const T(&)[N]) noexcept {
+        return N;
+    }
+}
+
+namespace std {
+    char* strcpy(char* dest, const char* src);
+    char* strncpy(char* dest, const char* src, size_t n);
+    size_t strlen(const char* str);
+    int strcmp(const char* str1, const char* str2);
+    int strncmp(const char* str1, const char* str2, size_t n);
+    char* strcat(char* dest, const char* src);
+    char* strncat(char* dest, const char* src, size_t n);
+    const char* strchr(const char* str, int c);
+    const char* strrchr(const char* str, int c);
+
+    long int strtol(const char* str, char** endptr, int base);
+    unsigned long int strtoul(const char* str, char** endptr, int base);
+    int atoi(const char* str);
+    char* itoa(int value, char* str, int base);
+}
+
+namespace std {
+    inline void setbit(uint8_t* bitmap, size_t bit_index) {
+        bitmap[bit_index / 8] |= (1 << (bit_index % 8));
+    }
+
+    inline void unsetbit(uint8_t* bitmap, size_t bit_index) {
+        bitmap[bit_index / 8] &= ~(1 << (bit_index % 8));
+    }
+
+    inline bool readbit(const uint8_t* bitmap, size_t bit_index) {
+        return bitmap[bit_index / 8] & (1 << (bit_index % 8));
+    }
+}
+
+namespace std {
+    template <typename T>
+    class unique_ptr {
+    private:
+        T* ptr;
+
+    public:
+        explicit unique_ptr(T* p = nullptr);
+        ~unique_ptr();
+        
+        unique_ptr(unique_ptr&& other) noexcept;
+        unique_ptr& operator=(unique_ptr&& other) noexcept;
+        
+        unique_ptr(const unique_ptr&) = delete;
+        unique_ptr& operator=(const unique_ptr&) = delete;
+
+        T& operator*() const;
+        T* operator->() const;
+        T* get() const;
+        T* release();
+        void reset(T* p = nullptr);
+    };
+
+    template <typename T>
+    class shared_ptr {
+    private:
+        T* ptr;
+        size_t* ref_count;
+
+        void release();
+
+    public:
+        explicit shared_ptr(T* p = nullptr);
+        ~shared_ptr();
+
+        shared_ptr(const shared_ptr& other);
+        shared_ptr& operator=(const shared_ptr& other);
+        
+        shared_ptr(shared_ptr&& other) noexcept;
+        shared_ptr& operator=(shared_ptr&& other) noexcept;
+
+        T& operator*() const;
+        T* operator->() const;
+        T* get() const;
+        size_t use_count() const;
+    };
 }

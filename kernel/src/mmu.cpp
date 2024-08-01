@@ -1,20 +1,19 @@
-#include <_start/vmm.hpp>
-#include <_start/pmm.hpp>
-#include <pmm.hpp>
+#include <sys/mm/mmu.hpp>
+#include <sys/mm/pmm.hpp>
 #include <util>
-#include <string>
 #include <kprintf>
 #include <atomic>
-#include <intr.hpp>
-// #include <_start/apic.hpp>
+#include <sys/idt.hpp>
+#include <sys/apic.hpp>
 
-namespace vmm {
+namespace mmu {
 
 struct limine_kernel_address_request kernel_address_request = {
     .id = LIMINE_KERNEL_ADDRESS_REQUEST,
     .revision = 0,
     .response = nullptr
 };
+
 extern "C" char text_start_addr[], text_end_addr[],
         rodata_start_addr[], rodata_end_addr[],
         data_start_addr[], data_end_addr[];
@@ -61,7 +60,7 @@ void init()
     }
     kernel_pmc.pml4_address += pmm::hhdm->offset;
     kprintf(" -> Zeroing out contents of newly allocated page\n");
-    memset((void *)kernel_pmc.pml4_address, 0, PAGE_SIZE);
+    std::memset((void *)kernel_pmc.pml4_address, 0, PAGE_SIZE);
 
     uintptr_t text_start = ALIGN_DOWN((uintptr_t)text_start_addr, PAGE_SIZE),
               rodata_start = ALIGN_DOWN((uintptr_t)rodata_start_addr, PAGE_SIZE),
@@ -71,15 +70,19 @@ void init()
               data_end = ALIGN_UP((uintptr_t)data_end_addr, PAGE_SIZE);
 
     kernel_address = kernel_address_request.response;
+    uintptr_t kernel_base = text_start;
+    uintptr_t kernel_highest = (data_end > rodata_end) ? data_end : rodata_end;
+    kprintf(" -> Kernel Base Address: 0x%llx\n", kernel_base);
+    kprintf(" -> Kernel Highest Address: 0x%llx\n", kernel_highest);
 
     kprintf(" -> Mapping kernel PMM structures\n");
     for (size_t off = 0; off < ALIGN_UP(pmm::totalBytesPmmStructures, PAGE_SIZE); off += PAGE_SIZE) {
         map(&kernel_pmc, (uintptr_t)pmm::pageBitmap + off, (uintptr_t)pmm::pageBitmap - pmm::hhdm->offset + off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
     }
 
-    // kprintf(" -> Mapping lapic\n");
-    // map(&kernel_pmc, ALIGN_DOWN((lapic::lapic_address + pmm::hhdm->offset), PAGE_SIZE), ALIGN_DOWN(lapic::lapic_address, PAGE_SIZE), PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
-    // lapic::lapic_address += pmm::hhdm->offset;
+    kprintf(" -> Mapping lapic\n");
+    map(&kernel_pmc, ALIGN_DOWN((lapic::lapic_address + pmm::hhdm->offset), PAGE_SIZE), ALIGN_DOWN(lapic::lapic_address, PAGE_SIZE), PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
+    lapic::lapic_address += pmm::hhdm->offset;
 
     kprintf(" -> Mapping usable memory and framebuffer\n");
     for (size_t i = 0; i < pmm::memmap->entry_count; i++) {
@@ -140,7 +143,7 @@ static uint64_t *get_below_pml(uint64_t *pml_pointer, uint64_t index, bool force
     if (below_pml == nullptr) {
         intr::kpanic(nullptr, "Failed to allocate page for lower level page table");
     }
-    memset((void *)((uint64_t)below_pml + pmm::hhdm->offset), 0, PAGE_SIZE);
+    std::memset((void *)((uint64_t)below_pml + pmm::hhdm->offset), 0, PAGE_SIZE);
 
     pml_pointer[index] = (uint64_t)below_pml | PTE_BIT_PRESENT | PTE_BIT_READ_WRITE | PTE_BIT_ACCESS_ALL;
     return (uint64_t *)((uint64_t)below_pml + pmm::hhdm->offset);
