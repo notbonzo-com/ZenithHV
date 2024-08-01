@@ -8,16 +8,15 @@
 #include <kmalloc>
 #include <vector>
 #include <ramfs>
+#include <new>
+#include <io>
 
 #include <sys/idt.hpp>
 #include <sys/apic.hpp>
 
-struct test
-{
-	uint8_t value;
-};
+#include <memory>
+#include <string>
 
-test test1 = { .value = 0, };
 
 extern "C" uint8_t kmain(void)
 {

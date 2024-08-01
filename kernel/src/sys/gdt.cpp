@@ -57,7 +57,7 @@ void init()
 
     kprintf(" -> Reloading the GDT and segment registers\n");
     reload();
-    kprintf(" -> GDT initialization complete");
+    kprintf(" -> GDT initialization complete\n");
 }
 
 void reload()

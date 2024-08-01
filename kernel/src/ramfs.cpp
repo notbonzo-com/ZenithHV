@@ -20,7 +20,7 @@ static volatile struct limine_module_request module_request = {
     .internal_modules = nullptr
 };
 
-namespace ramfs {
+namespace ramfs::pre {
 
 static RAMFSFile* root = nullptr;
 
@@ -63,14 +63,6 @@ void init() {
         last = file;
 
     } while (parser.next());
-
-    kprintf("RAMFS Initialization Complete. Listing root files:\n");
-    RAMFSFile* rootDir = open("./");
-    if (rootDir && rootDir->isDirectory) {
-        dir(rootDir);
-    } else {
-        kprintf("Error: Root is not a directory\n");
-    }
 }
 
 RAMFSFile* open(const char* filename) {
@@ -121,6 +113,10 @@ void cleanup() {
     }
     root = nullptr;
     kprintf(" -> RAMFS Cleanup Complete.\n");
+}
+
+size_t fsize(RAMFSFile* file) {
+    return file->size;
 }
 
 } // namespace ramfs

@@ -67,9 +67,11 @@ extern "C" [[noreturn]] void _start(void)
     debugf("Initilizing the APCI tables");
     apci::parse();
     debugf("Initilizing RAMFS");
-    ramfs::init();
+    ramfs::pre::init();
     debugf("Initilizing the IOAPIC");
     ioapic::init();
+    debugf("Initilizing the LAPIC");
+    lapic::init();
 
 
     debugf("Calling KMain");

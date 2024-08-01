@@ -1,5 +1,6 @@
 #include <sys/apci.hpp>
 #include <sys/apic.hpp>
+#include <sys/hpet.hpp>
 #include <kprintf>
 #include <vector>
 #include <util>
@@ -15,6 +16,58 @@ namespace lapic
 {
 uintptr_t lapic_address = 0xFEE00000;
 
+uint32_t ticks = 0;
+
+uint32_t read_reg(uint32_t reg) {
+    return *reinterpret_cast<volatile uint32_t*>(lapic_address + static_cast<uintptr_t>(reg));
+}
+
+void write_reg(uint32_t reg, uint32_t value) {
+    *reinterpret_cast<volatile uint32_t*>(lapic_address + static_cast<uintptr_t>(reg)) = value;
+}
+
+void timer_stop() {
+    write_reg(0x380, 0x0);
+    write_reg(0x320, (1 << 16));
+}
+
+void timer_oneshot(uint64_t ms, uint8_t vec) {
+    timer_stop();
+    write_reg(0x3E0, 0);
+    write_reg(0x320, vec);
+    write_reg(0x380, ms * ticks);
+}
+
+bool init() {
+    io::out<uint8_t>(0x21, 0xFF);
+    io::io_wait();
+    io::out<uint8_t>(0xA1, 0xFF);
+    io::io_wait();
+
+    write_reg(0x0F0, 0x1FF);
+    write_reg(LAPIC_TASKPRIOR, 0);
+
+
+    if (!hpet::init()) {
+        return false;
+    }
+
+    timer_stop();
+    write_reg(0x3E0, 0);
+    write_reg(0x320, 0);
+    write_reg(0x380, 0xFFFFFFFF);
+
+    hpet::usleep(100);
+
+    ticks = 0xFFFFFFFF - read_reg(0x390);
+    timer_stop();
+
+    return true;
+}
+
+void send_eoi() {
+    write_reg(0x0B0, 0);
+}
 
 } // namespace lapic
 

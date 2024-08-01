@@ -1,0 +1,236 @@
+#pragma once
+
+#include <stdint.h>
+#include <new>
+#include <memory>
+#include <util>
+
+namespace std {
+
+class string_view {
+public:
+    using value_type = char;
+    using traits_type = std::char_traits<char>;
+    using size_type = size_t;
+    using difference_type = ptrdiff_t;
+    using reference = value_type&;
+    using const_reference = const value_type&;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
+
+private:
+    const_pointer data_;
+    size_type size_;
+
+public:
+    string_view() : data_(nullptr), size_(0) {}
+
+    string_view(const char* s) : data_(s), size_(std::strlen(s)) {}
+
+    string_view(const char* s, size_type count) : data_(s), size_(count) {}
+
+    const_pointer data() const {
+        return data_;
+    }
+
+    size_type size() const {
+        return size_;
+    }
+
+    const_pointer begin() const {
+        return data_;
+    }
+
+    const_pointer end() const {
+        return data_ + size_;
+    }
+};
+
+template<typename CharT, typename Traits = std::char_traits<CharT>, typename Allocator = std::allocator<CharT>>
+class basic_string {
+public:
+    using value_type = CharT;
+    using traits_type = Traits;
+    using allocator_type = Allocator;
+    using size_type = size_t;
+    using difference_type = ptrdiff_t;
+    using reference = value_type&;
+    using const_reference = const value_type&;
+    using pointer = typename std::allocator_traits<Allocator>::pointer;
+    using const_pointer = typename std::allocator_traits<Allocator>::const_pointer;
+
+private:
+    pointer data_;
+    size_type size_;
+    allocator_type allocator_;
+
+    void allocate_and_copy(const CharT* s, size_type count) {
+        data_ = allocator_.allocate(count + 1);
+        std::memcpy(data_, s, count);
+        data_[count] = '\0';
+    }
+
+public:
+    basic_string() : data_(nullptr), size_(0), allocator_(Allocator()) {}
+
+    basic_string(const CharT* s) : size_(std::strlen(s)) {
+        allocate_and_copy(s, size_);
+    }
+
+    basic_string(CharT* s) : size_(std::strlen(s)) {
+        allocate_and_copy(s, size_);
+    }
+
+    basic_string(const basic_string& other) : size_(other.size_), allocator_(other.allocator_) {
+        allocate_and_copy(other.data_, size_);
+    }
+
+    basic_string(basic_string&& other) noexcept : data_(other.data_), size_(other.size_), allocator_(std::move(other.allocator_)) {
+        other.data_ = nullptr;
+        other.size_ = 0;
+    }
+
+    basic_string(std::string_view sv) : size_(sv.size()) {
+        allocate_and_copy(sv.data(), size_);
+    }
+
+    ~basic_string() {
+        if (data_) {
+            allocator_.deallocate(data_, size_ + 1);
+        }
+    }
+
+    basic_string& operator=(const basic_string& other) {
+        if (this != &other) {
+            if (data_) {
+                allocator_.deallocate(data_, size_ + 1);
+            }
+            size_ = other.size_;
+            allocator_ = other.allocator_;
+            allocate_and_copy(other.data_, size_);
+        }
+        return *this;
+    }
+
+    basic_string& operator=(basic_string&& other) noexcept {
+        if (this != &other) {
+            if (data_) {
+                allocator_.deallocate(data_, size_ + 1);
+            }
+            data_ = other.data_;
+            size_ = other.size_;
+            allocator_ = std::move(other.allocator_);
+            other.data_ = nullptr;
+            other.size_ = 0;
+        }
+        return *this;
+    }
+
+    const CharT* c_str() const {
+        return data_;
+    }
+
+    size_type size() const {
+        return size_;
+    }
+
+    reference operator[](size_type pos) {
+        return data_[pos];
+    }
+
+    const_reference operator[](size_type pos) const {
+        return data_[pos];
+    }
+
+    basic_string& operator+=(const basic_string& other) {
+        size_type new_size = size_ + other.size_;
+        pointer new_data = allocator_.allocate(new_size + 1);
+        std::memcpy(new_data, data_, size_);
+        std::memcpy(new_data + size_, other.data_, other.size_ + 1);
+        if (data_) {
+            allocator_.deallocate(data_, size_ + 1);
+        }
+        data_ = new_data;
+        size_ = new_size;
+        return *this;
+    }
+
+    basic_string& operator+=(const CharT* s) {
+        size_type s_len = std::strlen(s);
+        size_type new_size = size_ + s_len;
+        pointer new_data = allocator_.allocate(new_size + 1);
+        std::memcpy(new_data, data_, size_);
+        std::memcpy(new_data + size_, s, s_len + 1);
+        if (data_) {
+            allocator_.deallocate(data_, size_ + 1);
+        }
+        data_ = new_data;
+        size_ = new_size;
+        return *this;
+    }
+
+    basic_string& operator+=(CharT c) {
+        size_type new_size = size_ + 1;
+        pointer new_data = allocator_.allocate(new_size + 1);
+        std::memcpy(new_data, data_, size_);
+        new_data[size_] = c;
+        new_data[new_size] = '\0';
+        if (data_) {
+            allocator_.deallocate(data_, size_ + 1);
+        }
+        data_ = new_data;
+        size_ = new_size;
+        return *this;
+    }
+
+    friend basic_string operator+(basic_string lhs, const basic_string& rhs) {
+        lhs += rhs;
+        return lhs;
+    }
+
+    friend basic_string operator+(basic_string lhs, const CharT* rhs) {
+        lhs += rhs;
+        return lhs;
+    }
+
+    friend basic_string operator+(basic_string lhs, CharT rhs) {
+        lhs += rhs;
+        return lhs;
+    }
+
+    friend basic_string operator+(const CharT* lhs, const basic_string& rhs) {
+        basic_string temp(lhs);
+        temp += rhs;
+        return temp;
+    }
+
+    friend basic_string operator+(CharT lhs, const basic_string& rhs) {
+        basic_string temp(1, lhs);
+        temp += rhs;
+        return temp;
+    }
+};
+
+using string = basic_string<char>;
+
+static inline bool operator==(const string& lhs, const string& rhs) {
+    return std::strcmp(lhs.c_str(), rhs.c_str()) == 0;
+}
+
+static inline bool operator==(const string& lhs, const char* rhs) {
+    return std::strcmp(lhs.c_str(), rhs) == 0;
+}
+
+static inline bool operator==(const char* lhs, const string& rhs) {
+    return std::strcmp(lhs, rhs.c_str()) == 0;
+}
+
+static inline bool operator==(const string& lhs, const std::string_view& rhs) {
+    return std::strncmp(lhs.c_str(), rhs.data(), rhs.size()) == 0;
+}
+
+static inline bool operator==(const std::string_view& lhs, const string& rhs) {
+    return std::strncmp(lhs.data(), rhs.c_str(), lhs.size()) == 0;
+}
+
+} // namespace std

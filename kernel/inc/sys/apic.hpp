@@ -57,6 +57,13 @@ constexpr int LAPIC_TIMER_DIV_CONFIG_REG = 0x3E0;
 
 extern uintptr_t lapic_address;
 
+bool init();
+void send_eoi();
 
+uint32_t read(uint32_t reg);
+void write(uint32_t reg, uint32_t value);
+
+void timer_stop();
+void timer_oneshot(uint64_t ms, uint8_t vec);
 
 }

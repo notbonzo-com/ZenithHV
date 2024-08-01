@@ -70,6 +70,7 @@ override CPPFLAGS := \
 	-ffreestanding \
 	-nostdlib \
 	-nostartfiles \
+    -nostdinc++ \
     -I . \
     -I ./cfg \
     -I ./cfg \

@@ -277,50 +277,106 @@ namespace std {
     }
 }
 
+extern "C"
+{
+    typedef struct
+    {
+        int __fill[6];
+    } mbstate_t;
+}
+
 namespace std {
-    template <typename T>
-    class unique_ptr {
-    private:
-        T* ptr;
 
-    public:
-        explicit unique_ptr(T* p = nullptr);
-        ~unique_ptr();
-        
-        unique_ptr(unique_ptr&& other) noexcept;
-        unique_ptr& operator=(unique_ptr&& other) noexcept;
-        
-        unique_ptr(const unique_ptr&) = delete;
-        unique_ptr& operator=(const unique_ptr&) = delete;
+    template<typename CharT>
+    struct char_traits {
+        using char_type = CharT;
+        using int_type = int;
+        using pos_type = size_t;
+        using off_type = ptrdiff_t;
+        using state_type = mbstate_t;
 
-        T& operator*() const;
-        T* operator->() const;
-        T* get() const;
-        T* release();
-        void reset(T* p = nullptr);
-    };
+        static void assign(char_type& c1, const char_type& c2) noexcept {
+            c1 = c2;
+        }
 
-    template <typename T>
-    class shared_ptr {
-    private:
-        T* ptr;
-        size_t* ref_count;
+        static bool eq(const char_type& c1, const char_type& c2) noexcept {
+            return c1 == c2;
+        }
 
-        void release();
+        static bool lt(const char_type& c1, const char_type& c2) noexcept {
+            return c1 < c2;
+        }
 
-    public:
-        explicit shared_ptr(T* p = nullptr);
-        ~shared_ptr();
+        static int compare(const char_type* s1, const char_type* s2, size_t n) noexcept {
+            for (size_t i = 0; i < n; ++i) {
+                if (lt(s1[i], s2[i])) return -1;
+                if (lt(s2[i], s1[i])) return 1;
+            }
+            return 0;
+        }
 
-        shared_ptr(const shared_ptr& other);
-        shared_ptr& operator=(const shared_ptr& other);
-        
-        shared_ptr(shared_ptr&& other) noexcept;
-        shared_ptr& operator=(shared_ptr&& other) noexcept;
+        static size_t length(const char_type* s) noexcept {
+            size_t len = 0;
+            while (s[len] != char_type()) {
+                ++len;
+            }
+            return len;
+        }
 
-        T& operator*() const;
-        T* operator->() const;
-        T* get() const;
-        size_t use_count() const;
+        static const char_type* find(const char_type* s, size_t n, const char_type& a) noexcept {
+            for (size_t i = 0; i < n; ++i) {
+                if (eq(s[i], a)) {
+                    return s + i;
+                }
+            }
+            return nullptr;
+        }
+
+        static char_type* move(char_type* s1, const char_type* s2, size_t n) noexcept {
+            if (s1 < s2) {
+                for (size_t i = 0; i < n; ++i) {
+                    s1[i] = s2[i];
+                }
+            } else if (s1 > s2) {
+                for (size_t i = n; i > 0; --i) {
+                    s1[i - 1] = s2[i - 1];
+                }
+            }
+            return s1;
+        }
+
+        static char_type* copy(char_type* s1, const char_type* s2, size_t n) noexcept {
+            for (size_t i = 0; i < n; ++i) {
+                s1[i] = s2[i];
+            }
+            return s1;
+        }
+
+        static char_type* assign(char_type* s, size_t n, char_type a) noexcept {
+            for (size_t i = 0; i < n; ++i) {
+                s[i] = a;
+            }
+            return s;
+        }
+
+        static int_type not_eof(const int_type& c) noexcept {
+            return !eq_int_type(c, eof()) ? c : 0;
+        }
+
+        static char_type to_char_type(const int_type& c) noexcept {
+            return static_cast<char_type>(c);
+        }
+
+        static int_type to_int_type(const char_type& c) noexcept {
+            return static_cast<int_type>(c);
+        }
+
+        static bool eq_int_type(const int_type& c1, const int_type& c2) noexcept {
+            return c1 == c2;
+        }
+
+        static int_type eof() noexcept {
+            return static_cast<int_type>(-1);
+        }
     };
 }

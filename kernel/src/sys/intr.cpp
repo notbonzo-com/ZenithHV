@@ -257,7 +257,7 @@ void init()
         realHandler[vector] = reinterpret_cast<uintptr_t>(default_interrupt_handler);
     }
 
-    kprintf(" -> Loading the IDT Pointer into the IDTR register");
+    kprintf(" -> Loading the IDT Pointer into the IDTR register\n");
     load();
     kprintf(" -> IDT initialization complete\n");
 }

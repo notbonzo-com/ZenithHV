@@ -1,0 +1,196 @@
+#pragma once
+
+#include <util>
+#include <new>
+
+namespace std {
+    template <typename T>
+    class unique_ptr {
+    private:
+        T* ptr;
+
+    public:
+        explicit unique_ptr(T* p = nullptr) : ptr(p) {}
+        ~unique_ptr() { delete ptr; }
+        
+        unique_ptr(unique_ptr&& other) noexcept : ptr(other.ptr) { other.ptr = nullptr; }
+        unique_ptr& operator=(unique_ptr&& other) noexcept {
+            if (this != &other) {
+                delete ptr;
+                ptr = other.ptr;
+                other.ptr = nullptr;
+            }
+            return *this;
+        }
+        
+        unique_ptr(const unique_ptr&) = delete;
+        unique_ptr& operator=(const unique_ptr&) = delete;
+
+        T& operator*() const { return *ptr; }
+        T* operator->() const { return ptr; }
+        T* get() const { return ptr; }
+        T* release() {
+            T* temp = ptr;
+            ptr = nullptr;
+            return temp;
+        }
+        void reset(T* p = nullptr) {
+            delete ptr;
+            ptr = p;
+        }
+        bool operator!() const { return ptr == nullptr; }
+    };
+
+    template <typename T>
+    class shared_ptr {
+    private:
+        T* ptr;
+
+        void release() {
+            if (--(*ref_count) == 0) {
+                delete ptr;
+                delete ref_count;
+            }
+        }
+
+    public:
+        size_t* ref_count;
+        explicit shared_ptr(T* p = nullptr) : ptr(p), ref_count(new size_t(1)) {}
+        ~shared_ptr() { release(); }
+
+        shared_ptr(const shared_ptr& other) : ptr(other.ptr), ref_count(other.ref_count) {
+            ++(*ref_count);
+        }
+
+        template <typename U>
+        shared_ptr(const shared_ptr<U>& other, T* ptr) noexcept : ptr(ptr), ref_count(other.ref_count) {
+            ++(*ref_count);
+        }
+
+        shared_ptr& operator=(const shared_ptr& other) {
+            if (this != &other) {
+                release();
+                ptr = other.ptr;
+                ref_count = other.ref_count;
+                ++(*ref_count);
+            }
+            return *this;
+        }
+        
+        shared_ptr(shared_ptr&& other) noexcept : ptr(other.ptr), ref_count(other.ref_count) {
+            other.ptr = nullptr;
+            other.ref_count = nullptr;
+        }
+        shared_ptr& operator=(shared_ptr&& other) noexcept {
+            if (this != &other) {
+                release();
+                ptr = other.ptr;
+                ref_count = other.ref_count;
+                other.ptr = nullptr;
+                other.ref_count = nullptr;
+            }
+            return *this;
+        }
+
+        T& operator*() const { return *ptr; }
+        T* operator->() const { return ptr; }
+        T* get() const { return ptr; }
+        size_t use_count() const { return *ref_count; }
+        bool operator!() const { return ptr == nullptr; }
+    };
+
+    template <typename T, typename... Args>
+    unique_ptr<T> make_unique(Args&&... args) {
+        return unique_ptr<T>(new T(std::forward<Args>(args)...));
+    }
+
+    template <typename T, typename... Args>
+    shared_ptr<T> make_shared(Args&&... args) {
+        return shared_ptr<T>(new T(std::forward<Args>(args)...));
+    }
+
+    template <typename T>
+    class allocator {
+    public:
+        using value_type = T;
+
+        allocator() noexcept = default;
+        template <typename U>
+        allocator(const allocator<U>&) noexcept {}
+
+        T* allocate(size_t n) {
+            if (n > static_cast<size_t>(-1) / sizeof(T)) {
+                intr::kpanic(nullptr, "bad_alloc()");
+            }
+            T* ptr = static_cast<T*>(umalloc(n * sizeof(T)));
+            if (!ptr) {
+                intr::kpanic(nullptr, "bad_alloc()");
+            }
+            return ptr;
+        }
+
+        void deallocate(T* ptr, size_t) noexcept {
+            ufree(ptr);
+        }
+
+        template <typename U, typename... Args>
+        void construct(U* ptr, Args&&... args) {
+            ::new((void*)ptr) U(std::forward<Args>(args)...);
+        }
+
+        template <typename U>
+        void destroy(U* ptr) noexcept {
+            ptr->~U();
+        }
+
+        bool operator==(const allocator&) const noexcept { return true; }
+        bool operator!=(const allocator&) const noexcept { return false; }
+
+        template <typename U>
+        struct rebind {
+            using other = allocator<U>;
+        };
+    };
+
+    template <typename T>
+    struct allocator_traits {
+        using allocator_type = T;
+        using value_type = typename T::value_type;
+        using pointer = value_type*;
+        using const_pointer = const value_type*;
+        using size_type = size_t;
+        using difference_type = ptrdiff_t;
+
+        template <typename U>
+        using rebind_alloc = typename T::template rebind<U>::other;
+
+        static pointer allocate(T& alloc, size_type n) {
+            return alloc.allocate(n);
+        }
+
+        static void deallocate(T& alloc, pointer p, size_type n) {
+            alloc.deallocate(p, n);
+        }
+
+        template <typename U, typename... Args>
+        static void construct(T& alloc, U* p, Args&&... args) {
+            alloc.construct(p, std::forward<Args>(args)...);
+        }
+
+        template <typename U>
+        static void destroy(T& alloc, U* p) {
+            alloc.destroy(p);
+        }
+
+        static size_type max_size(const T& alloc) noexcept {
+            return alloc.max_size();
+        }
+    };
+}
+
+namespace std {
+    template <typename T, typename U>
+    std::shared_ptr<T> static_pointer_cast(const std::shared_ptr<U>& sp) noexcept {
+        return std::shared_ptr<T>(sp, static_cast<T*>(sp.get()));
+    }
+}

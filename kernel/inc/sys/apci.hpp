@@ -174,12 +174,10 @@ struct __pack ISO {
     uint16_t flags;
 };
 
-// Function Prototypes
 void parse();
 void* get_sdt(const char signature[4]);
 void parse_madt(volatile MADT* madt);
 
-// External Variables
 extern struct limine_rsdp_request rsdp_request;
 extern std::vector<IOAPIC*> ioapics;
 extern std::vector<LAPIC*> lapics;
