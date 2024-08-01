@@ -9,7 +9,7 @@
 
 namespace ramfs {
 
-namespace pre {
+namespace internal {
     struct RAMFSFile {
         const char* name;
         size_t size;

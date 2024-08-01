@@ -1,4 +1,4 @@
-#include <ramfs>
+#include <vfs/ramfs.hpp>
 #include <limine.h>
 #include <kprintf>
 #include <sys/idt.hpp>
@@ -20,7 +20,7 @@ static volatile struct limine_module_request module_request = {
     .internal_modules = nullptr
 };
 
-namespace ramfs::pre {
+namespace ramfs::internal {
 
 static RAMFSFile* root = nullptr;
 
@@ -119,4 +119,4 @@ size_t fsize(RAMFSFile* file) {
     return file->size;
 }
 
-} // namespace ramfs
+} // namespace ramfs::internal

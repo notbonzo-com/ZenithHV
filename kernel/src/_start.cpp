@@ -12,7 +12,6 @@
 #include <sys/mm/kheap.hpp>
 #include <sys/apci.hpp>
 #include <sys/apic.hpp>
-#include <ramfs>
 
 extern "C" {
 __attribute__((used, section(".requests"))) static volatile LIMINE_BASE_REVISION(2);
@@ -66,8 +65,6 @@ extern "C" [[noreturn]] void _start(void)
     kheap::init((0xFFul * 1024ul * 1024ul * 4096ul) / PAGE_SIZE);
     debugf("Initilizing the APCI tables");
     apci::parse();
-    debugf("Initilizing RAMFS");
-    ramfs::pre::init();
     debugf("Initilizing the IOAPIC");
     ioapic::init();
     debugf("Initilizing the LAPIC");

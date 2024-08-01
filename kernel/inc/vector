@@ -54,6 +54,8 @@ public:
     iterator begin() { return iterator(data); }
     iterator end() { return iterator(data + _size); }
 
+    void erase(iterator pos);
+
 private:
     T* data;
     size_t _size;
@@ -198,5 +200,23 @@ void vector<T>::destroy_elements() noexcept {
     }
     _size = 0;
 }
+
+template <typename T>
+void vector<T>::erase(iterator pos) {
+    if (pos < begin() || pos >= end()) {
+        intr::kpanic(nullptr, "iterator out of range");
+    }
+    size_t index = pos.ptr - data;
+    if (index < _size) {
+        data[index].~T();
+        for (size_t i = index; i < _size - 1; ++i) {
+            new (&data[i]) T(std::move(data[i + 1]));
+            data[i + 1].~T();
+        }
+        --_size;
+    }
+}
+
+
 
 }  // namespace std

@@ -29,7 +29,7 @@ $(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))
 override DEFAULT_CPPFLAGS :=
 $(eval $(call DEFAULT_VAR,CPPFLAGS,$(DEFAULT_CPPFLAGS)))
 
-override DEFAULT_CXXFLAGS := -g -O2 -pipe -std=c++17
+override DEFAULT_CXXFLAGS := -g -O2 -pipe -std=c++23 -Wall -Wextra
 $(eval $(call DEFAULT_VAR,CXXFLAGS,$(DEFAULT_CXXFLAGS)))
 
 override DEFAULT_CXX := g++

@@ -7,7 +7,6 @@
 
 #include <kmalloc>
 #include <vector>
-#include <ramfs>
 #include <new>
 #include <io>
 
@@ -17,10 +16,12 @@
 #include <memory>
 #include <string>
 
+#include <vfs/vfs.hpp>
+
+using namespace gtest;
 
 extern "C" uint8_t kmain(void)
 {
 
-
-	return 0;
+    return 0;
 }

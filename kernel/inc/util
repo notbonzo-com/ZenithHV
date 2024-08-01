@@ -379,4 +379,25 @@ namespace std {
             return static_cast<int_type>(-1);
         }
     };
+
+    template<typename T, typename U>
+    struct is_same {
+        static const bool value = false;
+    };
+
+    template<typename T>
+    struct is_same<T, T> {
+        static const bool value = true;
+    };
+
+    template<typename T>
+    struct is_void {
+        static const bool value = false;
+    };
+
+    template<>
+    struct is_void<void> {
+        static const bool value = true;
+    };
+
 }
