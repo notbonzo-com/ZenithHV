@@ -1,0 +1,195 @@
+#include <util>
+#include <new>
+#include <stddef.h>
+#include <string>
+
+namespace std {
+
+template <typename Key, typename Value>
+struct Node {
+    Key key;
+    Value value;
+    Node* next;
+
+    Node(Key k, Value v) : key(std::move(k)), value(std::move(v)), next(nullptr) {}
+};
+
+template <typename Key, typename Value>
+class unordered_map_iterator {
+private:
+    Node<Key, Value>* node;
+public:
+    using difference_type = ptrdiff_t;
+    using value_type = Node<Key, Value>;
+    using pointer = value_type*;
+    using reference = value_type&;
+
+    unordered_map_iterator(Node<Key, Value>* node) : node(node) {}
+
+    reference operator*() const { return *node; }
+    pointer operator->() { return node; }
+
+    unordered_map_iterator& operator++() {
+        if (node) node = node->next;
+        return *this;
+    }
+
+    unordered_map_iterator operator++(int) {
+        unordered_map_iterator tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+
+    Key first() {
+        return node->key;
+    }
+
+    Value second() {
+        return node->value;
+    }
+
+    friend bool operator==(const unordered_map_iterator& a, const unordered_map_iterator& b) {
+        return a.node == b.node;
+    }
+    friend bool operator!=(const unordered_map_iterator& a, const unordered_map_iterator& b) {
+        return a.node != b.node;
+    }
+};
+
+uint64_t fnv1a_hash(const char* data, size_t length) {
+    uint64_t hash = 0xcbf29ce484222325;
+    for (size_t i = 0; i < length; ++i) {
+        hash ^= static_cast<uint64_t>(data[i]);
+        hash *= 0x100000001b3;
+    }
+    return hash;
+}
+
+template <typename Key, typename Value, typename Hash = uint64_t(*)(const char*, size_t)>
+class unordered_map {
+private:
+    Node<Key, Value>** table;
+    size_t capacity;
+    Hash hash_fn;
+
+    size_t get_index(const Key& key) const {
+        auto key_hash = hash_fn(reinterpret_cast<const char*>(&key), sizeof(Key));
+        return key_hash % capacity;
+    }
+
+public:
+    using iterator = unordered_map_iterator<Key, Value>;
+
+    unordered_map(size_t cap, Hash fn) : capacity(cap), hash_fn(fn) {
+        table = new Node<Key, Value>*[capacity];
+        for (size_t i = 0; i < capacity; ++i) {
+            table[i] = nullptr;
+        }
+    }
+
+    unordered_map() : unordered_map(16, fnv1a_hash) {}
+
+    ~unordered_map() {
+        for (size_t i = 0; i < capacity; ++i) {
+            Node<Key, Value>* node = table[i];
+            while (node) {
+                Node<Key, Value>* next = node->next;
+                delete node;
+                node = next;
+            }
+        }
+        delete[] table;
+    }
+
+    void insert(Key key, Value value) {
+        size_t index = get_index(key);
+        Node<Key, Value>* new_node = new Node<Key, Value>(std::move(key), std::move(value));
+        new_node->next = table[index];
+        table[index] = new_node;
+    }
+
+    Value* find(const Key& key) {
+        size_t index = get_index(key);
+        Node<Key, Value>* node = table[index];
+        while (node) {
+            if (node->key == key) {
+                return &node->value;
+            }
+            node = node->next;
+        }
+        return nullptr;
+    }
+
+    const Value* find(const Key& key) const {
+        size_t index = get_index(key);
+        Node<Key, Value>* node = table[index];
+        while (node) {
+            if (node->key == key) {
+                return &node->value;
+            }
+            node = node->next;
+        }
+        return nullptr;
+    }
+
+    void erase(const Key& key) {
+        size_t index = get_index(key);
+        Node<Key, Value>* node = table[index];
+        Node<Key, Value>* prev = nullptr;
+        while (node) {
+            if (node->key == key) {
+                if (prev) {
+                    prev->next = node->next;
+                } else {
+                    table[index] = node->next;
+                }
+                delete node;
+                return;
+            }
+            prev = node;
+            node = node->next;
+        }
+    }
+
+    Value& operator[](const Key& key) {
+        size_t index = get_index(key);
+        Node<Key, Value>* node = table[index];
+        while (node) {
+            if (node->key == key) {
+                return node->value;
+            }
+            node = node->next;
+        }
+        insert(key, Value());
+        return table[index]->value;
+    }
+
+    iterator begin() {
+        for (size_t i = 0; i < capacity; ++i) {
+            if (table[i] != nullptr) {
+                return iterator(table[i]);
+            }
+        }
+        return end();
+    }
+
+    iterator end() {
+        return iterator(nullptr);
+    }
+
+    iterator begin() const {
+        for (size_t i = 0; i < capacity; ++i) {
+            if (table[i] != nullptr) {
+                return iterator(table[i]);
+            }
+        }
+        return end();
+    }
+
+    iterator end() const {
+        return iterator(nullptr);
+    }
+};
+
+} // namespace std
+
