@@ -54,6 +54,7 @@
         "ramfs": "cpp",
         "cpio": "cpp",
         "iostream": "cpp",
-        "istream": "cpp"
+        "istream": "cpp",
+        "sstream": "cpp"
     }
 }

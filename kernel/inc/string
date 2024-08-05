@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <new>
 #include <memory>
-#include <util>
+#include <utility>
 
 namespace std {
 
@@ -58,6 +58,8 @@ public:
     using const_reference = const value_type&;
     using pointer = typename std::allocator_traits<Allocator>::pointer;
     using const_pointer = typename std::allocator_traits<Allocator>::const_pointer;
+    using iterator = pointer;
+    using const_iterator = const_pointer;
 
 private:
     pointer data_;
@@ -142,6 +144,18 @@ public:
         return data_[pos];
     }
 
+    bool empty() const noexcept {
+        return size_ == 0;
+    }
+
+    void clear() noexcept {
+        if (data_) {
+            allocator_.deallocate(data_, size_ + 1);
+        }
+        data_ = nullptr;
+        size_ = 0;
+    }
+
     basic_string& operator+=(const basic_string& other) {
         size_type new_size = size_ + other.size_;
         pointer new_data = allocator_.allocate(new_size + 1);
@@ -181,6 +195,30 @@ public:
         data_ = new_data;
         size_ = new_size;
         return *this;
+    }
+
+    iterator begin() {
+        return data_;
+    }
+
+    const_iterator begin() const {
+        return data_;
+    }
+
+    const_iterator cbegin() const {
+        return data_;
+    }
+
+    iterator end() {
+        return data_ + size_;
+    }
+
+    const_iterator end() const {
+        return data_ + size_;
+    }
+
+    const_iterator cend() const {
+        return data_ + size_;
     }
 
     friend basic_string operator+(basic_string lhs, const basic_string& rhs) {

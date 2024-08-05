@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 #include <new>
-#include <util>
+#include <utility>
 #include <sys/idt.hpp>
 
 namespace std {
@@ -22,9 +22,15 @@ public:
     size_t size() const noexcept;
     size_t capacity() const noexcept;
     bool empty() const noexcept;
+    void clear() noexcept {
+        destroy_elements();
+        _size = 0;
+    }
 
     template <typename... Args>
     void emplace_back(Args&&... args);
+
+    void assign(const T* data, size_t size);
 
     class iterator {
     public:
@@ -46,13 +52,50 @@ public:
 
         friend bool operator==(const iterator& a, const iterator& b) { return a.ptr == b.ptr; }
         friend bool operator!=(const iterator& a, const iterator& b) { return a.ptr != b.ptr; }
+        friend bool operator<(const iterator& a, const iterator& b) { return a.ptr < b.ptr; }
+        friend bool operator>=(const iterator& a, const iterator& b) { return a.ptr >= b.ptr; }
 
     private:
         T* ptr;
+        friend class vector;
     };
 
     iterator begin() { return iterator(data); }
     iterator end() { return iterator(data + _size); }
+
+    class const_iterator {
+    public:
+        const_iterator(const T* ptr) : ptr(ptr) {}
+
+        const T& operator*() const { return *ptr; }
+        const T* operator->() const { return ptr; }
+
+        const_iterator& operator++() { 
+            ++ptr; 
+            return *this; 
+        }  
+
+        const_iterator operator++(int) { 
+            const_iterator tmp = *this; 
+            ++(*this); 
+            return tmp; 
+        }
+
+        const_iterator operator+(size_t n) const {
+            return const_iterator(ptr + n);
+        }
+
+        friend bool operator==(const const_iterator& a, const const_iterator& b) { return a.ptr == b.ptr; }
+        friend bool operator!=(const const_iterator& a, const const_iterator& b) { return a.ptr != b.ptr; }
+        friend bool operator<(const const_iterator& a, const const_iterator& b) { return a.ptr < b.ptr; }
+        friend bool operator>=(const const_iterator& a, const const_iterator& b) { return a.ptr >= b.ptr; }
+
+    private:
+        const T* ptr;
+    };
+
+    const_iterator begin() const { return const_iterator(data); }
+    const_iterator end() const { return const_iterator(data + _size); }
 
     void erase(iterator pos);
 
@@ -217,6 +260,16 @@ void vector<T>::erase(iterator pos) {
     }
 }
 
-
+template <typename T>
+void vector<T>::assign(const T* data, size_t size) {
+    if (size > _capacity) {
+        resize(size);
+    }
+    destroy_elements();
+    for (size_t i = 0; i < size; ++i) {
+        new (&this->data[i]) T(data[i]);
+    }
+    _size = size;
+}
 
 }  // namespace std

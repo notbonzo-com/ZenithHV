@@ -67,6 +67,7 @@ override CFLAGS += \
     -Wno-trigraphs
 
 override CPPFLAGS := \
+    -Wno-delete-non-virtual-dtor \
 	-ffreestanding \
 	-nostdlib \
 	-nostartfiles \

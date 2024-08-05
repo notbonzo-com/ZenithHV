@@ -1,5 +1,6 @@
 #include <sys/gdt.hpp>
 #include <kprintf>
+#include <atomic>
 
 namespace gdt
 {
@@ -106,11 +107,11 @@ void init()
 }
 
 
-
+std::klock tss_lock;
 
 void reload(tss_t* addr)
 {
-    //TODO Locks
+    tss_lock.a();
     ::gdt::GDT.TSS.base_low = (uint16_t)((uintptr_t)addr & 0xFFFF);
     ::gdt::GDT.TSS.base_mid = (uint8_t)(((uintptr_t)addr >> 16) & 0xFF);
     ::gdt::GDT.TSS.base_high = (uint8_t)(((uintptr_t)addr >> 24) & 0xFF);
@@ -124,6 +125,7 @@ void reload(tss_t* addr)
         : "rm" ((uint16_t)0x28)
         : "memory"
     );
+    tss_lock.r();
 }
 
 }

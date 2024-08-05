@@ -4,27 +4,26 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#define MAX(x, y) (x > y ? x : y)
-#define MIN(x, y) (x < y ? x : y)
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 #define DIV_ROUNDUP(x, y) (((x) + (y) - 1) / (y))
-#define DIV_ROUNDDOWN(x, y) (x / y)
+#define DIV_ROUNDDOWN(x, y) ((x) / (y))
 
 #define BITMAP_SET_BIT(bitmap, bit_index) ((bitmap)[(bit_index) / 8] |= (1 << ((bit_index) % 8)))
 #define BITMAP_UNSET_BIT(bitmap, bit_index) ((bitmap)[(bit_index) / 8] &= ~(1 << ((bit_index) % 8)))
-#define BITMAP_READ_BIT(bitmap, bit_index) ((bitmap)[(bit_index) / 8] & (1 << ((bit_index) % 8)))
+#define BITMAP_READ_BIT(bitmap, bit_index) (((bitmap)[(bit_index) / 8] & (1 << ((bit_index) % 8))) != 0)
 
 #define ALIGN_UP(x, base) (((x) + (base) - 1) & ~((base) - 1))
 #define ALIGN_DOWN(x, base) ((x) & ~((base) - 1))
 
 #define POW(base, exponent) ({ \
     uint64_t out = 1; \
-    for (uint64_t i = 0; i < exponent; i++) { \
-        out *= base; \
+    for (uint64_t i = 0; i < (exponent); i++) { \
+        out *= (base); \
     } \
     out; \
 })
-
 
 #define __pack __attribute__((packed))
 extern "C" bool __get_cpuid(uint32_t op, uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx);
@@ -36,34 +35,34 @@ namespace std {
     struct make_signed;
 
     template <>
-    struct make_signed<unsigned char> { typedef signed char type; };
+    struct make_signed<unsigned char> { using type = signed char; };
 
     template <>
-    struct make_signed<unsigned short> { typedef short type; };
+    struct make_signed<unsigned short> { using type = short; };
 
     template <>
-    struct make_signed<unsigned int> { typedef int type; };
+    struct make_signed<unsigned int> { using type = int; };
 
     template <>
-    struct make_signed<unsigned long> { typedef long type; };
+    struct make_signed<unsigned long> { using type = long; };
 
     template <>
-    struct make_signed<unsigned long long> { typedef long long type; };
+    struct make_signed<unsigned long long> { using type = long long; };
 
     template <>
-    struct make_signed<char> { typedef signed char type; };
+    struct make_signed<char> { using type = signed char; };
 
     template <>
-    struct make_signed<short> { typedef short type; };
+    struct make_signed<short> { using type = short; };
 
     template <>
-    struct make_signed<int> { typedef int type; };
+    struct make_signed<int> { using type = int; };
 
     template <>
-    struct make_signed<long> { typedef long type; };
+    struct make_signed<long> { using type = long; };
 
     template <>
-    struct make_signed<long long> { typedef long long type; };
+    struct make_signed<long long> { using type = long long; };
 
     template <typename T>
     using make_signed_t = typename make_signed<T>::type;
@@ -131,19 +130,40 @@ namespace std {
     }
 
     template<typename T>
-    struct remove_reference { typedef T type; };
+    struct remove_reference { using type = T; };
 
     template<typename T>
-    struct remove_reference<T&> { typedef T type; };
+    struct remove_reference<T&> { using type = T; };
 
     template<typename T>
-    struct remove_reference<T&&> { typedef T type; };
+    struct remove_reference<T&&> { using type = T; };
 
     template<typename T>
     constexpr typename remove_reference<T>::type&& move(T&& arg) noexcept {
         return static_cast<typename remove_reference<T>::type&&>(arg);
     }
-    
+
+    template <typename T>
+    struct default_delete {
+        constexpr default_delete() noexcept = default;
+
+        template <typename U>
+        default_delete(const default_delete<U>&) noexcept {}
+
+        void operator()(T* ptr) const {
+            delete ptr;
+        }
+    };
+
+    template <typename T>
+    struct default_delete<T[]> {
+        constexpr default_delete() noexcept = default;
+
+        void operator()(T* ptr) const {
+            delete[] ptr;
+        }
+    };
+
     void* memcpy(void* dest, const void* src, size_t n);
     void* memmove(void* dest, const void* src, size_t n);
     void* memset(void* dest, int val, size_t n);
@@ -157,7 +177,7 @@ namespace std {
     public:
         Bitmap(uint8_t* bitmap, size_t size) : bitmap(bitmap), size(size) {}
         Bitmap() : bitmap(nullptr), size(0) {}
-        
+
         Bitmap(Bitmap&& other) noexcept
             : bitmap(other.bitmap), size(other.size) {
             other.bitmap = nullptr;
@@ -196,7 +216,7 @@ namespace std {
     struct enable_if {};
 
     template <class T>
-    struct enable_if<true, T> { typedef T type; };
+    struct enable_if<true, T> { using type = T; };
 
     template <typename T>
     struct is_integral {
@@ -234,7 +254,6 @@ namespace std {
 
     template <typename T>
     T&& forward(typename remove_reference<T>::type&& t) noexcept {
-        // static_assert(!is_lvalue_reference<T>::value, "Cannot forward an rvalue as an lvalue.");
         return static_cast<T&&>(t);
     }
 }
@@ -400,6 +419,25 @@ namespace std {
         static const bool value = true;
     };
 
+    template <typename InputIterator, typename OutputIterator>
+    constexpr OutputIterator copy(InputIterator first, InputIterator last, OutputIterator result) {
+        while (first != last) {
+            *result = *first;
+            ++result;
+            ++first;
+        }
+        return result;
+    }
+
+    template <typename InputIt, typename UnaryPredicate>
+    InputIt find_if(InputIt first, InputIt last, UnaryPredicate p) {
+        for (; first != last; ++first) {
+            if (p(*first)) {
+                return first;
+            }
+        }
+        return last;
+    }
 }
 
 static inline uint64_t fnv1a_hash(const char* data, size_t length) {

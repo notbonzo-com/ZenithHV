@@ -20,8 +20,7 @@
 
 using namespace gtest;
 
-extern "C" uint8_t kmain(void)
-{
+extern "C" uint8_t kmain(void) {
 
     return 0;
 }

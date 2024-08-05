@@ -1,5 +1,5 @@
 #include <sys/idt.hpp>
-#include <util>
+#include <utility>
 #include <io>
 #include <kprintf>
 #include <atomic>
