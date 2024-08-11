@@ -1,4 +1,4 @@
-#include <sys/apci.hpp>
+#include <sys/acpi.hpp>
 #include <sys/mm/mmu.hpp>
 #include <sys/mm/pmm.hpp>
 #include <sys/idt.hpp>
@@ -7,9 +7,10 @@
 #include <new>
 #include <vector>
 #include <atomic>
+#include <cstring>
 #include <utility>
 
-namespace apci {
+namespace acpi {
 
 static bool xsdt_present = false;
 

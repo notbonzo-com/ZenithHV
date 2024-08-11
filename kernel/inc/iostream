@@ -1,0 +1,166 @@
+#pragma once
+
+#include <cstring>
+#include <kprintf>
+#include <stdarg.h>
+
+namespace std {
+	class streambuf {
+	public:
+		virtual streambuf& operator<<(const char* str) = 0;
+		virtual streambuf& operator<<(char value) = 0;
+		virtual streambuf& operator<<(unsigned char value) = 0;
+		virtual streambuf& operator<<(short value) = 0;
+		virtual streambuf& operator<<(unsigned short value) = 0;
+		virtual streambuf& operator<<(int value) = 0;
+		virtual streambuf& operator<<(unsigned int value) = 0;
+		virtual streambuf& operator<<(long value) = 0;
+		virtual streambuf& operator<<(unsigned long value) = 0;
+		virtual streambuf& operator<<(long long value) = 0;
+		virtual streambuf& operator<<(unsigned long long value) = 0;
+		virtual streambuf& operator<<(bool value) = 0;
+		virtual streambuf& operator<<(void* value) = 0;
+
+		virtual streambuf& operator<<(streambuf& (*pf)(streambuf&)) = 0;
+	};
+
+	class basic_streambuf : public streambuf {
+	private:
+		int base = 10;
+	public:
+		basic_streambuf& operator<<(const char* str) override {
+			kprintf("%s", str);
+			return *this;
+		}
+
+		basic_streambuf& operator<<(char value) override {
+			kprintf("%c", value);
+			return *this;
+		}
+
+		basic_streambuf& operator<<(unsigned char value) override {
+			kprintf("%c", value);
+			return *this;
+		}
+
+		basic_streambuf& operator<<(short value) override {
+			print_number(value);
+			return *this;
+		}
+
+		basic_streambuf& operator<<(unsigned short value) override {
+			print_number(value);
+			return *this;
+		}
+
+		basic_streambuf& operator<<(int value) override {
+			print_number(value);
+			return *this;
+		}
+
+		basic_streambuf& operator<<(unsigned int value) override {
+			print_number(value);
+			return *this;
+		}
+
+		basic_streambuf& operator<<(long value) override {
+			print_number(value);
+			return *this;
+		}
+
+		basic_streambuf& operator<<(unsigned long value) override {
+			print_number(value);
+			return *this;
+		}
+
+		basic_streambuf& operator<<(long long value) override {
+			print_number(value);
+			return *this;
+		}
+
+		basic_streambuf& operator<<(unsigned long long value) override {
+			print_number(value);
+			return *this;
+		}
+
+		basic_streambuf& operator<<(bool value) override {
+			kprintf("%s", value ? "true" : "false");
+			return *this;
+		}
+
+		basic_streambuf& operator<<(void* value) override {
+			kprintf("%p", value);
+			return *this;
+		}
+
+		// template<typename T, size_t N>
+		// basic_streambuf& operator<<(const std::array<T, N>& arr) {
+		// 	kprintf("[ ");
+		// 	for (size_t i = 0; i < N; ++i) {
+		// 		kprintf("%d", arr[i]);
+		// 		if (i < N - 1) {
+		// 			kprintf(", ");
+		// 		}
+		// 	}
+		// 	kprintf(" ]");
+		// 	return *this;
+		// }
+
+		basic_streambuf& operator<<(streambuf& (*pf)(streambuf&)) override {
+			return static_cast<basic_streambuf&>(pf(*this));
+		}
+
+		basic_streambuf& setbase(int b) {
+			base = b;
+			return *this;
+		}
+
+	private:
+		template <typename T>
+		void print_number(T value) {
+			switch (base) {
+				case 8:
+					kprintf("%0*o", 0, value);
+					break;
+				case 10:
+					kprintf("%0*d", 0, value);
+					break;
+				case 16:
+					kprintf("%0*x", 0, value);
+					break;
+				case 2:
+					kprintf("%0*b", 0, value);
+					break;
+				default:
+					kprintf("%d", value);
+			}
+		}
+	};
+
+	inline streambuf& endl(streambuf& out) {
+		out << '\n';
+		return out;
+	}
+
+	inline streambuf& hex(streambuf& out) {
+		static_cast<basic_streambuf&>(out).setbase(16);
+		return out;
+	}
+
+	inline streambuf& dec(streambuf& out) {
+		static_cast<basic_streambuf&>(out).setbase(10);
+		return out;
+	}
+
+	inline streambuf& oct(streambuf& out) {
+		static_cast<basic_streambuf&>(out).setbase(8);
+		return out;
+	}
+
+	inline streambuf& bin(streambuf& out) {
+		static_cast<basic_streambuf&>(out).setbase(2);
+		return out;
+	}
+
+	basic_streambuf cout;
+}

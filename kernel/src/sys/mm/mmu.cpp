@@ -3,6 +3,7 @@
 #include <utility>
 #include <kprintf>
 #include <atomic>
+#include <cstring>
 #include <sys/idt.hpp>
 #include <sys/apic.hpp>
 

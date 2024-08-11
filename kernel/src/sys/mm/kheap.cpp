@@ -4,6 +4,7 @@
 #include <sys/idt.hpp>
 #include <utility>
 #include <kprintf>
+#include <cstring>
 #include <atomic>
 
 std::klock malloc_lock;

@@ -1,6 +1,7 @@
 #include <sys/mm/pmm.hpp>
 #include <limine.h>
 #include <sys/idt.hpp>
+#include <cstring>
 
 #include <utility>
 #include <kprintf>

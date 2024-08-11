@@ -1,4 +1,4 @@
-#include <sys/apci.hpp>
+#include <sys/acpi.hpp>
 #include <sys/apic.hpp>
 #include <sys/hpet.hpp>
 #include <kprintf>
@@ -89,21 +89,21 @@ uint64_t init()
     io::out<uint8_t>(0x21, 0xFF);
     io::out<uint8_t>(0xA1, 0xFF);
 
-	for (size_t i = 0; i < apci::ioapics.size(); i++) {            
-        mmu::map(&mmu::kernel_pmc, ALIGN_DOWN(((uintptr_t)apci::ioapics[i]->io_apic_address + pmm::hhdm->offset), PAGE_SIZE),
-            ALIGN_DOWN((uintptr_t)apci::ioapics[i]->io_apic_address, PAGE_SIZE), mmu::PTE_BIT_PRESENT | mmu::PTE_BIT_READ_WRITE);
+	for (size_t i = 0; i < acpi::ioapics.size(); i++) {            
+        mmu::map(&mmu::kernel_pmc, ALIGN_DOWN(((uintptr_t)acpi::ioapics[i]->io_apic_address + pmm::hhdm->offset), PAGE_SIZE),
+            ALIGN_DOWN((uintptr_t)acpi::ioapics[i]->io_apic_address, PAGE_SIZE), mmu::PTE_BIT_PRESENT | mmu::PTE_BIT_READ_WRITE);
     }
     
     kprintf(" -> IOAPIC initialization complete\n");
 	return 0;
 }
 
-void write(struct apci::IOAPIC* ioapic, uint32_t reg, uint32_t value) {
+void write(struct acpi::IOAPIC* ioapic, uint32_t reg, uint32_t value) {
     *reinterpret_cast<volatile uint32_t*>(static_cast<uintptr_t>(ioapic->io_apic_address) + pmm::hhdm->offset) = reg;
     *reinterpret_cast<volatile uint32_t*>(static_cast<uintptr_t>(ioapic->io_apic_address) + pmm::hhdm->offset + 0x10) = value;
 }
 
-uint32_t read(struct apci::IOAPIC* ioapic, uint32_t reg) {
+uint32_t read(struct acpi::IOAPIC* ioapic, uint32_t reg) {
     *reinterpret_cast<volatile uint32_t*>(static_cast<uintptr_t>(ioapic->io_apic_address) + pmm::hhdm->offset) = reg;
     return *reinterpret_cast<volatile uint32_t*>(static_cast<uintptr_t>(ioapic->io_apic_address) + pmm::hhdm->offset + 0x10);
 }
@@ -111,17 +111,17 @@ uint32_t read(struct apci::IOAPIC* ioapic, uint32_t reg) {
 void set_entry(uint32_t irq, uint32_t vector, uint32_t lapic_id, bool unset)
 {
     uint16_t iso_flags = 0;
-    for (size_t i = 0; i < apci::isos.size(); i++) {
-        if (apci::isos[i]->source_irq == irq) {
-            irq = apci::isos[i]->global_system_interrupt;
-            iso_flags = apci::isos[i]->flags;
+    for (size_t i = 0; i < acpi::isos.size(); i++) {
+        if (acpi::isos[i]->source_irq == irq) {
+            irq = acpi::isos[i]->global_system_interrupt;
+            iso_flags = acpi::isos[i]->flags;
             break;
         }
     }
 
-    struct apci::IOAPIC* ioapic = nullptr;
-    for (auto& ioapic_ptr : apci::ioapics) {
-        auto lambda = [irq](apci::IOAPIC* ioapic) {
+    struct acpi::IOAPIC* ioapic = nullptr;
+    for (auto& ioapic_ptr : acpi::ioapics) {
+        auto lambda = [irq](acpi::IOAPIC* ioapic) {
             const auto base = ioapic->global_system_interrupt_base;
             const auto end = base + ((read(ioapic, 0x1) & 0xFF0000) >> 16);
             return base <= irq && irq < end;
@@ -133,9 +133,9 @@ void set_entry(uint32_t irq, uint32_t vector, uint32_t lapic_id, bool unset)
     }
     if (!ioapic) {
 		kprintf(" -> Offending IRQ: %u\n", irq);
-        kprintf(" -> apci IOAPIC count: %lu\n", apci::ioapics.size());
-        for (size_t i = 0; i < apci::ioapics.size(); i++) {
-            kprintf(" -> IOAPIC[%lu]: Address: %lu, GSI Base: %u\n", i, apci::ioapics[i]->io_apic_address, apci::ioapics[i]->global_system_interrupt_base);
+        kprintf(" -> acpi IOAPIC count: %lu\n", acpi::ioapics.size());
+        for (size_t i = 0; i < acpi::ioapics.size(); i++) {
+            kprintf(" -> IOAPIC[%lu]: Address: %lu, GSI Base: %u\n", i, acpi::ioapics[i]->io_apic_address, acpi::ioapics[i]->global_system_interrupt_base);
         }
         intr::kpanic(NULL, "No IOAPIC Handles the specified range!");
     }

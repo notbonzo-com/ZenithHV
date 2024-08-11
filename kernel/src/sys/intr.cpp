@@ -3,6 +3,7 @@
 #include <io>
 #include <kprintf>
 #include <atomic>
+#include <cstring>
 
 namespace intr {
 
@@ -265,7 +266,7 @@ void init()
 std::klock regvec_lock;
 std::klock ervec_lock;
 VolatileVector::VolatileVector(size_t vectorS, handler_t handler) {
-	std::autolock regvec_alock(&regvec_lock);
+	std::auto_lock regvec_alock(regvec_lock);
     vector = vectorS;
     debugf("Registering Vector %zu to handler %p", vector, (void*)handler);
 
@@ -278,7 +279,7 @@ VolatileVector::VolatileVector(size_t vectorS, handler_t handler) {
 }
 
 VolatileVector::~VolatileVector() {
-	std::autolock ervec_alock(&ervec_lock);
+	std::auto_lock ervec_alock(ervec_lock);
     debugf("Restoring Vector %zu to handler %p", vector, (void*)previousHandler);
 
     // if (realHandler[vector] == reinterpret_cast<uintptr_t>(default_interrupt_handler)) {

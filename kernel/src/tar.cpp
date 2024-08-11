@@ -1,5 +1,6 @@
 #include <tar>
 #include <utility>
+#include <cstring>
 #include <kprintf>
 
 namespace tar {

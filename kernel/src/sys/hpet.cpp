@@ -1,5 +1,5 @@
 #include <sys/hpet.hpp>
-#include <sys/apci.hpp>
+#include <sys/acpi.hpp>
 #include <sys/mm/pmm.hpp>
 
 namespace hpet {
@@ -9,7 +9,7 @@ regs_t *regs;
 
 bool init()
 {
-	header *hpet = reinterpret_cast<header *>(apci::get_sdt("HPET"));
+	header *hpet = reinterpret_cast<header *>(acpi::get_sdt("HPET"));
     if (hpet == NULL) {
         return false;
     }

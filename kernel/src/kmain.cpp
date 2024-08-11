@@ -3,7 +3,7 @@
 #include <sys/gdt.hpp>
 #include <sys/mm/pmm.hpp>
 
-#include <gtest>
+#include <bozotest>
 
 #include <kmalloc>
 #include <vector>
@@ -16,9 +16,9 @@
 #include <memory>
 #include <string>
 
-#include <vfs/vfs.hpp>
 
-using namespace gtest;
+using namespace bozotest;
+
 
 extern "C" uint8_t kmain(void) {
 

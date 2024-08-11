@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <new>
 #include <memory>
+#include <cstring>
 #include <utility>
 
 namespace std {
@@ -73,7 +74,14 @@ private:
     }
 
 public:
+    static constexpr size_type npos = static_cast<size_type>(-1);
     basic_string() : data_(nullptr), size_(0), allocator_(Allocator()) {}
+
+    basic_string(const CharT* s, size_type count) : size_(count) {
+        data_ = allocator_.allocate(size_ + 1);
+        std::memcpy(data_, s, size_);
+        data_[size_] = '\0';
+    }
 
     basic_string(const CharT* s) : size_(std::strlen(s)) {
         allocate_and_copy(s, size_);
@@ -134,6 +142,45 @@ public:
 
     size_type size() const {
         return size_;
+    }
+
+    size_type find_last_of(const CharT* s, size_type pos = npos) const {
+        if (size_ == 0 || s == nullptr) {
+            return npos;
+        }
+
+        pos = std::min(pos, size_ - 1);
+        for (size_type i = pos; i != npos; --i) {
+            for (const CharT* it = s; *it != '\0'; ++it) {
+                if (data_[i] == *it) {
+                    return i;
+                }
+            }
+        }
+        return npos;
+    }
+
+    size_type find_last_of(CharT c, size_type pos = npos) const {
+        if (size_ == 0) {
+            return npos;
+        }
+
+        pos = std::min(pos, size_ - 1);
+        for (size_type i = pos; i != npos; --i) {
+            if (data_[i] == c) {
+                return i;
+            }
+        }
+        return npos;
+    }
+
+    basic_string substr(size_type pos = 0, size_type count = npos) const {
+        if (pos > size_) {
+            intr::kpanic(nullptr, "basic_string::substr: pos > size_");
+        }
+
+        count = std::min(count, size_ - pos);
+        return basic_string(data_ + pos, count);
     }
 
     reference operator[](size_type pos) {
@@ -270,5 +317,16 @@ static inline bool operator==(const string& lhs, const std::string_view& rhs) {
 static inline bool operator==(const std::string_view& lhs, const string& rhs) {
     return std::strncmp(lhs.data(), rhs.c_str(), lhs.size()) == 0;
 }
+
+template <>
+struct hash<string> {
+    size_t operator()(const string& key) const {
+        size_t hash = 0;
+        for (size_t i = 0; i < key.size(); ++i) {
+            hash = hash * 31 + key.c_str()[i];
+        }
+        return hash;
+    }
+};
 
 } // namespace std

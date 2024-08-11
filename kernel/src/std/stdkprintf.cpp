@@ -1,3 +1,5 @@
+#include <atomic>
+
 extern "C" {
 void _putchar(char c)
 {
@@ -42,7 +44,6 @@ void _putchar(char c)
 #include <stdarg.h>
 #include <stdint.h>
 
-#include <atomic>
 
 // 'ntoa' conversion buffer size, this must be big enough to hold one converted
 // numeric number including padded zeros (dynamically created on stack)

@@ -10,7 +10,7 @@
 #include <sys/mm/pmm.hpp>
 #include <sys/mm/mmu.hpp>
 #include <sys/mm/kheap.hpp>
-#include <sys/apci.hpp>
+#include <sys/acpi.hpp>
 #include <sys/apic.hpp>
 
 extern "C" {
@@ -63,8 +63,8 @@ extern "C" [[noreturn]] void _start(void)
     mmu::init();
     debugf("Initilisng the Kernel Heap");
     kheap::init((0xFFul * 1024ul * 1024ul * 4096ul) / PAGE_SIZE);
-    debugf("Initilizing the APCI tables");
-    apci::parse();
+    debugf("Initilizing the acpi tables");
+    acpi::parse();
     debugf("Initilizing the IOAPIC");
     ioapic::init();
     debugf("Initilizing the LAPIC");

@@ -14,13 +14,13 @@ define DEFAULT_VAR =
     endif
 endef
 
-override DEFAULT_CC := gcc
+override DEFAULT_CC := ~/toolchain/x86_64-elf/bin/x86_64-elf-gcc
 $(eval $(call DEFAULT_VAR,CC,$(DEFAULT_CC)))
 
-override DEFAULT_LD := ld
+override DEFAULT_LD := ~/toolchain/x86_64-elf/bin/x86_64-elf-ld
 $(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
 
-override DEFAULT_AS := as
+override DEFAULT_AS := ~/toolchain/x86_64-elf/bin/x86_64-elf-as
 $(eval $(call DEFAULT_VAR,AS,$(DEFAULT_AS)))
 
 override DEFAULT_CFLAGS := -g -O2 -pipe
@@ -32,7 +32,7 @@ $(eval $(call DEFAULT_VAR,CPPFLAGS,$(DEFAULT_CPPFLAGS)))
 override DEFAULT_CXXFLAGS := -g -O2 -pipe -std=c++23 -Wall -Wextra
 $(eval $(call DEFAULT_VAR,CXXFLAGS,$(DEFAULT_CXXFLAGS)))
 
-override DEFAULT_CXX := g++
+override DEFAULT_CXX := ~/toolchain/x86_64-elf/bin/x86_64-elf-g++
 $(eval $(call DEFAULT_VAR,CXX,$(DEFAULT_CXX)))
 
 override DEFAULT_NASMFLAGS := -F dwarf -g

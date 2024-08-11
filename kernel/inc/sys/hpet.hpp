@@ -1,12 +1,12 @@
 #pragma once
 
-#include <sys/apci.hpp>
+#include <sys/acpi.hpp>
 #include <stdint.h>
 
 namespace hpet {
 
 typedef struct {
-    apci::SDTHeader header;
+    acpi::SDTHeader header;
     uint8_t hardware_rev_id;
     uint8_t info;
     uint16_t pci_id;

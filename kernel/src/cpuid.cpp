@@ -1,4 +1,5 @@
 #include <cpuid.hpp>
+#include <cstring>
 #include <sys/idt.hpp>
 
 extern "C" bool __get_cpuid(uint32_t op, uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx) {

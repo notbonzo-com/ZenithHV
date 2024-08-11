@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <sys/apci.hpp>
+#include <sys/acpi.hpp>
 #include <sys/idt.hpp>
 
 namespace ioapic
@@ -17,8 +17,8 @@ constexpr uint8_t ARB    = 0x02;
 constexpr uint8_t REDTBL = 0x10;
 
 uint64_t init();
-void write(apci::IOAPIC* ioapic, uint32_t reg, uint32_t value);
-uint32_t read(apci::IOAPIC* ioapic, uint32_t reg);
+void write(acpi::IOAPIC* ioapic, uint32_t reg, uint32_t value);
+uint32_t read(acpi::IOAPIC* ioapic, uint32_t reg);
 
 void set_entry(uint32_t irq, uint32_t vector, uint32_t lapic_id, bool unset);
 void redirect(uint32_t irq, uint32_t vect, uint32_t lapic_id);
