@@ -9,6 +9,7 @@
 #include <atomic>
 #include <cstring>
 #include <utility>
+#include <macro.hpp>
 
 namespace acpi {
 

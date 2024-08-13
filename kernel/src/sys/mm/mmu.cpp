@@ -6,6 +6,8 @@
 #include <cstring>
 #include <sys/idt.hpp>
 #include <sys/apic.hpp>
+#include <macro.hpp>
+#include <cpuid.hpp>
 
 namespace mmu {
 

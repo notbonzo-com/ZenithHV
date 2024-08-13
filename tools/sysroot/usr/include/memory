@@ -3,6 +3,7 @@
 #include <utility>
 #include <new>
 #include <atomic>
+#include <allocator>
 
 namespace std {
 
@@ -73,9 +74,6 @@ namespace std {
     void swap(unique_ptr<T, Deleter>& lhs, unique_ptr<T, Deleter>& rhs) noexcept {
         lhs.swap(rhs);
     }
-}
-
-namespace std {
 
     template <typename T>
     class shared_ptr {
@@ -202,89 +200,7 @@ namespace std {
         return shared_ptr<T>(sp, const_cast<T*>(sp.get()));
     }
 
-}
-
-
-namespace std {
-    template <typename T>
-    class allocator {
-    public:
-        using value_type = T;
-
-        allocator() noexcept = default;
-        template <typename U>
-        allocator(const allocator<U>&) noexcept {}
-
-        T* allocate(size_t n) {
-            if (n > static_cast<size_t>(-1) / sizeof(T)) {
-                intr::kpanic(nullptr, "Allocation too large");
-            }
-            T* ptr = static_cast<T*>(::operator new(n * sizeof(T)));
-            if (!ptr) {
-                intr::kpanic(nullptr, "Allocation failed");
-            }
-            return ptr;
-        }
-
-        void deallocate(T* ptr, size_t) noexcept {
-            ::operator delete(ptr);
-        }
-
-        template <typename U, typename... Args>
-        void construct(U* ptr, Args&&... args) {
-            ::new((void*)ptr) U(std::forward<Args>(args)...);
-        }
-
-        template <typename U>
-        void destroy(U* ptr) noexcept {
-            ptr->~U();
-        }
-
-        bool operator==(const allocator&) const noexcept { return true; }
-        bool operator!=(const allocator&) const noexcept { return false; }
-
-        template <typename U>
-        struct rebind {
-            using other = allocator<U>;
-        };
-    };
-
-    template <typename T>
-    struct allocator_traits {
-        using allocator_type = T;
-        using value_type = typename T::value_type;
-        using pointer = value_type*;
-        using const_pointer = const value_type*;
-        using size_type = size_t;
-        using difference_type = ptrdiff_t;
-
-        template <typename U>
-        using rebind_alloc = typename T::template rebind<U>::other;
-
-        static pointer allocate(T& alloc, size_type n) {
-            return alloc.allocate(n);
-        }
-
-        static void deallocate(T& alloc, pointer p, size_type n) {
-            alloc.deallocate(p, n);
-        }
-
-        template <typename U, typename... Args>
-        static void construct(T& alloc, U* p, Args&&... args) {
-            alloc.construct(p, std::forward<Args>(args)...);
-        }
-
-        template <typename U>
-        static void destroy(T& alloc, U* p) {
-            alloc.destroy(p);
-        }
-
-        static size_type max_size(const T& alloc) noexcept {
-            return alloc.max_size();
-        }
-    };
-
-    template <typename T, typename... Args>
+        template <typename T, typename... Args>
     shared_ptr<T> make_shared(Args&&... args) {
         T* ptr = new T(std::forward<Args>(args)...);
         return shared_ptr<T>(ptr);

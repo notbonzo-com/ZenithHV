@@ -4,9 +4,12 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/kernel/inc"
+                "${workspaceFolder}/kernel/inc",
+                "${workspaceFolder}/tools/sysroot/usr/include"
             ],
-            "defines": [],
+            "defines": [
+                "__is_kernel__"
+            ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c17",
             "cppStandard": "c++23",

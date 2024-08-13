@@ -1,10 +1,24 @@
 #pragma once
 
 #include <cstring>
-#include <kprintf>
 #include <stdarg.h>
+#ifdef __is_kernel__
+// #include <stdio.h>
+#error "Graphical kernel output not implemented"
+#else
+#include <stdio.h>
+#endif
 
 namespace std {
+	namespace detail {
+		static inline void _iostream_printf(const char* fmt, ...) {
+			va_list args;
+			va_start(args, fmt);
+			vprintf(fmt, args);
+			va_end(args);
+		}
+	}
+
 	class streambuf {
 	public:
 		virtual streambuf& operator<<(const char* str) = 0;
@@ -29,17 +43,17 @@ namespace std {
 		int base = 10;
 	public:
 		basic_streambuf& operator<<(const char* str) override {
-			kprintf("%s", str);
+			detail::_iostream_printf("%s", str);
 			return *this;
 		}
 
 		basic_streambuf& operator<<(char value) override {
-			kprintf("%c", value);
+			detail::_iostream_printf("%c", value);
 			return *this;
 		}
 
 		basic_streambuf& operator<<(unsigned char value) override {
-			kprintf("%c", value);
+			detail::_iostream_printf("%c", value);
 			return *this;
 		}
 
@@ -84,27 +98,14 @@ namespace std {
 		}
 
 		basic_streambuf& operator<<(bool value) override {
-			kprintf("%s", value ? "true" : "false");
+			detail::_iostream_printf("%s", value ? "true" : "false");
 			return *this;
 		}
 
 		basic_streambuf& operator<<(void* value) override {
-			kprintf("%p", value);
+			detail::_iostream_printf("%p", value);
 			return *this;
 		}
-
-		// template<typename T, size_t N>
-		// basic_streambuf& operator<<(const std::array<T, N>& arr) {
-		// 	kprintf("[ ");
-		// 	for (size_t i = 0; i < N; ++i) {
-		// 		kprintf("%d", arr[i]);
-		// 		if (i < N - 1) {
-		// 			kprintf(", ");
-		// 		}
-		// 	}
-		// 	kprintf(" ]");
-		// 	return *this;
-		// }
 
 		basic_streambuf& operator<<(streambuf& (*pf)(streambuf&)) override {
 			return static_cast<basic_streambuf&>(pf(*this));
@@ -120,19 +121,19 @@ namespace std {
 		void print_number(T value) {
 			switch (base) {
 				case 8:
-					kprintf("%0*o", 0, value);
+					detail::_iostream_printf("%0*o", 0, value);
 					break;
 				case 10:
-					kprintf("%0*d", 0, value);
+					detail::_iostream_printf("%0*d", 0, value);
 					break;
 				case 16:
-					kprintf("%0*x", 0, value);
+					detail::_iostream_printf("%0*x", 0, value);
 					break;
 				case 2:
-					kprintf("%0*b", 0, value);
+					detail::_iostream_printf("%0*b", 0, value);
 					break;
 				default:
-					kprintf("%d", value);
+					detail::_iostream_printf("%d", value);
 			}
 		}
 	};

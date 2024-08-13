@@ -31,5 +31,5 @@ struct cpuid_data_common {
 };
 
 void cpuid_common(struct cpuid_data_common *data);
-
+extern "C" bool __get_cpuid(uint32_t op, uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx);
 void cpuid(struct cpuid_ctx *ctx);

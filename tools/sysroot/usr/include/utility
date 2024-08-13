@@ -3,32 +3,19 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-
-#define MAX(x, y) ((x) > (y) ? (x) : (y))
-#define MIN(x, y) ((x) < (y) ? (x) : (y))
-
-#define DIV_ROUNDUP(x, y) (((x) + (y) - 1) / (y))
-#define DIV_ROUNDDOWN(x, y) ((x) / (y))
-
-#define BITMAP_SET_BIT(bitmap, bit_index) ((bitmap)[(bit_index) / 8] |= (1 << ((bit_index) % 8)))
-#define BITMAP_UNSET_BIT(bitmap, bit_index) ((bitmap)[(bit_index) / 8] &= ~(1 << ((bit_index) % 8)))
-#define BITMAP_READ_BIT(bitmap, bit_index) (((bitmap)[(bit_index) / 8] & (1 << ((bit_index) % 8))) != 0)
-
-#define ALIGN_UP(x, base) (((x) + (base) - 1) & ~((base) - 1))
-#define ALIGN_DOWN(x, base) ((x) & ~((base) - 1))
-
-#define POW(base, exponent) ({ \
-    uint64_t out = 1; \
-    for (uint64_t i = 0; i < (exponent); i++) { \
-        out *= (base); \
-    } \
-    out; \
-})
+#include <cstring>
 
 #define __pack __attribute__((packed))
-extern "C" bool __get_cpuid(uint32_t op, uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx);
 
 using ssize_t = long signed int;
+
+extern "C"
+{
+    typedef struct
+    {
+        int __fill[6];
+    } mbstate_t;
+}
 
 namespace std {
     template <typename T>
@@ -164,49 +151,6 @@ namespace std {
         }
     };
 
-    class Bitmap {
-    private:
-        uint8_t* bitmap;
-        size_t size;
-
-    public:
-        Bitmap(uint8_t* bitmap, size_t size) : bitmap(bitmap), size(size) {}
-        Bitmap() : bitmap(nullptr), size(0) {}
-
-        Bitmap(Bitmap&& other) noexcept
-            : bitmap(other.bitmap), size(other.size) {
-            other.bitmap = nullptr;
-            other.size = 0;
-        }
-        Bitmap& operator=(Bitmap&& other) noexcept {
-            if (this != &other) {
-                bitmap = other.bitmap;
-                size = other.size;
-                other.bitmap = nullptr;
-                other.size = 0;
-            }
-            return *this;
-        }
-        bool operator[](size_t bit_index) const {
-            return read(bit_index);
-        }
-        Bitmap(const Bitmap&) = delete;
-        Bitmap& operator=(const Bitmap&) = delete;
-        ~Bitmap() = default;
-        void set(size_t bit_index);
-        void unset(size_t bit_index);
-        bool read(size_t bit_index) const;
-        size_t bit_size() const;
-        ssize_t find_first_free() const;
-        size_t count_set() const;
-        size_t count_unset() const;
-        void resize(uint8_t* new_bitmap, size_t new_size);
-        uint8_t* data();
-        size_t byte_size() const;
-    };
-}
-
-namespace std {
     template <bool B, class T = void>
     struct enable_if {};
 
@@ -230,18 +174,14 @@ namespace std {
     template <> struct is_integral<unsigned long> { static constexpr bool value = true; };
     template <> struct is_integral<long long> { static constexpr bool value = true; };
     template <> struct is_integral<unsigned long long> { static constexpr bool value = true; };
-}
 
-namespace std {
     template <typename T>
     void swap(T& a, T& b) noexcept {
         T temp = move(a);
         a = move(b);
         b = move(temp);
     }
-}
 
-namespace std {
     template <typename T>
     T&& forward(typename remove_reference<T>::type& t) noexcept {
         return static_cast<T&&>(t);
@@ -251,16 +191,12 @@ namespace std {
     T&& forward(typename remove_reference<T>::type&& t) noexcept {
         return static_cast<T&&>(t);
     }
-}
 
-namespace std {
     template <typename T, size_t N>
     constexpr size_t array_size(const T(&)[N]) noexcept {
         return N;
     }
-}
 
-namespace std {
     inline void setbit(uint8_t* bitmap, size_t bit_index) {
         bitmap[bit_index / 8] |= (1 << (bit_index % 8));
     }
@@ -272,17 +208,6 @@ namespace std {
     inline bool readbit(const uint8_t* bitmap, size_t bit_index) {
         return bitmap[bit_index / 8] & (1 << (bit_index % 8));
     }
-}
-
-extern "C"
-{
-    typedef struct
-    {
-        int __fill[6];
-    } mbstate_t;
-}
-
-namespace std {
 
     template<typename CharT>
     struct char_traits {
@@ -416,6 +341,9 @@ namespace std {
         }
         return last;
     }
+
+    template <typename T>
+    struct hash;
 }
 
 static inline uint64_t fnv1a_hash(const char* data, size_t length) {
@@ -425,9 +353,4 @@ static inline uint64_t fnv1a_hash(const char* data, size_t length) {
         hash *= 0x100000001b3;
     }
     return hash;
-}
-
-namespace std {
-    template <typename T>
-    struct hash;
 }

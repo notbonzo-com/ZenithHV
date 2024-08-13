@@ -57,6 +57,7 @@
         "istream": "cpp",
         "sstream": "cpp",
         "rbtree": "cpp",
-        "bozotest": "cpp"
+        "bozotest": "cpp",
+        "allocator": "cpp"
     }
 }

@@ -122,3 +122,11 @@ void cpuid_compatibility_check(struct cpuid_data_common *data)
         intr::kpanic(NULL, "Missing CPUID support");
     }
 }
+
+void __cpuid(uint32_t code, uint32_t &eax, uint32_t &ebx, uint32_t &ecx, uint32_t &edx) {
+    asm volatile (
+        "cpuid"
+        : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
+        : "a" (code), "c" (0)
+    );
+}

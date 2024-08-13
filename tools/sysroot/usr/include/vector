@@ -3,7 +3,11 @@
 #include <stddef.h>
 #include <new>
 #include <utility>
+#ifdef __is_kernel__
 #include <sys/idt.hpp>
+#else
+#include <stdexcept>
+#endif
 
 namespace std {
 
@@ -42,7 +46,7 @@ public:
         iterator& operator++() { 
             ++ptr; 
             return *this; 
-        }  
+        }
 
         iterator operator++(int) { 
             iterator tmp = *this; 
@@ -122,9 +126,13 @@ vector<T>::~vector() noexcept {
 template <typename T>
 vector<T>::vector(const vector& other) : data(nullptr), _size(0), _capacity(0) {
     if (other._size > 0) {
-        data = static_cast<T*>(umalloc(other._capacity * sizeof(T)));
+		data = new T[other._capacity];
         if (!data) {
+#ifdef __is_kernel__
             intr::kpanic(nullptr, "bad_alloc()");
+#else
+			throw std::bad_alloc();
+#endif
         }
         for (size_t i = 0; i < other._size; ++i) {
             new (&data[i]) T(other.data[i]);
@@ -139,7 +147,7 @@ vector<T>& vector<T>::operator=(const vector& other) {
     if (this != &other) {
         destroy_elements();
         if (data) {
-            ufree(data);
+			delete [] data;
         }
 
         data = nullptr;
@@ -147,9 +155,13 @@ vector<T>& vector<T>::operator=(const vector& other) {
         _capacity = 0;
 
         if (other._size > 0) {
-            data = static_cast<T*>(umalloc(other._capacity * sizeof(T)));
+			data = new T[other._capacity];
             if (!data) {
-                intr::kpanic(nullptr, "bad_alloc()");
+#ifdef __is_kernel__
+				intr::kpanic(nullptr, "bad_alloc()");
+#else
+				throw std::bad_alloc();
+#endif
             }
             for (size_t i = 0; i < other._size; ++i) {
                 new (&data[i]) T(other.data[i]);
@@ -173,7 +185,11 @@ void vector<T>::push_back(const T& value) {
 template <typename T>
 void vector<T>::pop_back() {
     if (_size == 0) {
+#ifdef __is_kernel__
         intr::kpanic(nullptr, "pop_back() called on empty vector");
+#else
+		throw std::out_of_range("pop_back() called on empty vector");
+#endif
     }
     data[--_size].~T();
 }
@@ -181,7 +197,11 @@ void vector<T>::pop_back() {
 template <typename T>
 T& vector<T>::operator[](size_t index) {
     if (index >= _size) {
+#ifdef __is_kernel__
         intr::kpanic(nullptr, "index out of range");
+#else
+		throw std::out_of_range("index out of range");
+#endif
     }
     return data[index];
 }
@@ -189,7 +209,11 @@ T& vector<T>::operator[](size_t index) {
 template <typename T>
 const T& vector<T>::operator[](size_t index) const {
     if (index >= _size) {
+#ifdef __is_kernel__
         intr::kpanic(nullptr, "index out of range");
+#else
+		throw std::out_of_range("index out of range");
+#endif
     }
     return data[index];
 }
@@ -221,16 +245,20 @@ void vector<T>::emplace_back(Args&&... args) {
 
 template <typename T>
 void vector<T>::resize(size_t new_capacity) {
-    T* new_data = static_cast<T*>(umalloc(new_capacity * sizeof(T)));
+	T* new_data = new T[new_capacity];
     if (!new_data) {
-        intr::kpanic(nullptr, "bad_alloc()");
+#ifdef __is_kernel__
+			intr::kpanic(nullptr, "bad_alloc()");
+#else
+			throw std::bad_alloc();
+#endif
     }
     for (size_t i = 0; i < _size; ++i) {
         new (&new_data[i]) T(std::move(data[i]));
     }
     destroy_elements();
     if (data) {
-        ufree(data);
+		delete [] data;
     }
     data = new_data;
     _capacity = new_capacity;
@@ -247,7 +275,11 @@ void vector<T>::destroy_elements() noexcept {
 template <typename T>
 void vector<T>::erase(iterator pos) {
     if (pos < begin() || pos >= end()) {
+#ifdef __is_kernel__
         intr::kpanic(nullptr, "iterator out of range");
+#else
+		throw std::out_of_range("iterator out of range");
+#endif
     }
     size_t index = pos.ptr - data;
     if (index < _size) {

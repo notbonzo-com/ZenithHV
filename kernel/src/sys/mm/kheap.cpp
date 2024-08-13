@@ -6,6 +6,7 @@
 #include <kprintf>
 #include <cstring>
 #include <atomic>
+#include <macro.hpp>
 
 std::klock malloc_lock;
 namespace kheap {

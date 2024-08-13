@@ -10,7 +10,7 @@
 #include <kmalloc>
 #include <new>
 #include <io>
-
+#include <macro.hpp>
 
 namespace lapic
 {

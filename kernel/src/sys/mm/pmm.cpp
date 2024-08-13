@@ -2,6 +2,7 @@
 #include <limine.h>
 #include <sys/idt.hpp>
 #include <cstring>
+#include <macro.hpp>
 
 #include <utility>
 #include <kprintf>
