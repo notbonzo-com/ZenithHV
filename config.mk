@@ -1,5 +1,4 @@
 # config.mk
-export SYSROOT := $(TOOLS_DIR)/sysroot
 
 export ANSI_GREEN := \033[0;32m
 export ANSI_RESET := \033[0m
@@ -22,16 +21,12 @@ export DEFAULT_NASMFLAGS := -Wall -g
 export DEFAULT_LDFLAGS := -g -O2
 
 export KERNEL_CFLAGS := $(DEFAULT_CFLAGS) $(DEFAULT_CCFLAGS) -fPIE -m64 -march=x86-64 -mno-80387 -mno-mmx -mno-sse -mno-sse2 -mno-red-zone -ffreestanding \
-	-fno-stack-protector -fno-omit-frame-pointer -fno-stack-check -fno-lto 	-nostdlib -nostartfiles \
+	-fno-omit-frame-pointer -fno-lto -nostdlib -nostartfiles \
 	-I . -I ./inc -I ./cfg \
-	-I $(SYSROOT)/usr/include -D__is_kernel__
+	-I $(TOOLS_DIR)/lib/usr/include -D__is_kernel__
 export KERNEL_CXXFLAGS := $(DEFAULT_CXXFLAGS) $(DEFAULT_CCFLAGS) -fPIE -m64 -march=x86-64 -mno-80387 -mno-mmx -mno-sse -mno-sse2 -mno-red-zone -ffreestanding \
-	-Wno-delete-non-virtual-dtor -nostdinc++ -fno-omit-frame-pointer -fno-use-cxa-atexit -fno-exceptions -fno-rtti \
+	-Wno-delete-non-virtual-dtor -nostdinc++ -fno-omit-frame-pointer -fno-use-cxa-atexit -fno-exceptions -fno-rtti -fstack-protector-strong \
 	-I . -I ./inc -I ./cfg \
-	-I $(SYSROOT)/usr/include -D__is_kernel__
+	-I $(TOOLS_DIR)/lib/usr/include -D__is_kernel__
 export KERNEL_LDFLAGS := $(DEFAULT_LDFLAGS) -ffreestanding -nostdlib -nostartfiles -T cfg/linker.ld -static -lgcc
 export KERNEL_NASMFLAGS := $(DEFAULT_NASMFLAGS) -f elf64
-
-export USER_CFLAGS := $(DEFAULT_CFLAGS) $(DEFAULT_CCFLAGS) --sysroot=$(SYSROOT)
-export USER_CXXFLAGS := $(DEFAULT_CXXFLAGS) $(DEFAULT_CCFLAGS) --sysroot=$(SYSROOT)
-export USER_LDFLAGS := $(DEFAULT_LDFLAGS) --sysroot=$(SYSROOT)

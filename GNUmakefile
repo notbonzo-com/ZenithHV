@@ -7,7 +7,7 @@ export TOOLS_DIR := $(abspath ./tools)
 
 include config.mk
 
-all: libck kernel ramfs disk run
+all: lib kernel ramfs disk run
 
 kernel:
 	@make -C kernel/ BUILD_DIR=$(BUILD_DIR)
@@ -15,12 +15,8 @@ kernel:
 ramfs:
 	@make -C ramfs/ BUILD_DIR=$(BUILD_DIR)
 
-libck:
-	@make -C $(TOOLS_DIR)/sysroot BUILD_DIR=$(BUILD_DIR)
-
-toolchain:
-	@chmod +x $(TOOLS_DIR)/toolchain.sh
-	@$(TOOLS_DIR)/toolchain.sh $(TOOLS_DIR)
+lib:
+	@make -C $(TOOLS_DIR)/lib BUILD_DIR=$(BUILD_DIR)
 
 disk:
 	@dd if=/dev/zero bs=1M count=0 seek=64 of=$(BUILD_DIR)/image.hdd
@@ -58,7 +54,7 @@ run:
 clean:
 	@clear
 	@make -C kernel/ clean
-	@make -C $(TOOLS_DIR)/sysroot clean
+	@make -C $(TOOLS_DIR)/lib clean
 	@rm -rf $(BUILD_DIR)/image.hdd $(BUILD_DIR)/image.iso iso_root/ $(BUILD_DIR)/initramfs.img
 	@rm -rf $(BUILD_DIR)/serial_output.txt $(BUILD_DIR)/monitor_output.txt $(BUILD_DIR)/qemu_log.txt
 

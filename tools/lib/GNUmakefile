@@ -1,4 +1,9 @@
 BUILD_DIR ?= ../../build
+override LIB_DIR := $(abspath .)
+
+#TODO Compile the userspace stuff:
+# libc.a libstdc++.a
+# crt0.o crti.o crtn.o
 
 .PHONY: all clean
 
@@ -19,8 +24,8 @@ override CXX := $(DEFAULT_CXX)
 override LD := $(DEFAULT_LD)
 override AR := $(DEFAULT_AR)
 
-override CFLAGS := -Wall -Werror -nostdlib -I$(SYSROOT)/usr/include
-override CXXFLAGS := -Wall -Werror -nostdlib -I$(SYSROOT)/usr/include
+override CFLAGS := -Wall -Werror -nostdlib -I$(LIB_DIR)/usr/include
+override CXXFLAGS := -Wall -Werror -nostdlib -I$(LIB_DIR)/usr/include
 
 libk: $(OBJ)
 	$(AR) rcs $(LIBK) $(OBJ)
