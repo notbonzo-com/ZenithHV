@@ -8,10 +8,10 @@
 #endif
 
 extern "C" {
-uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
-[[noreturn]] void __stack_chk_fail()
-{
-	intr::kpanic(nullptr, "stack smashing detected");
-	__builtin_unreachable();
-}
+	uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
+	[[noreturn]] void __stack_chk_fail()
+	{
+		intr::kpanic(nullptr, "stack smashing detected");
+		__builtin_unreachable();
+	}
 }

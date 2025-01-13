@@ -7,70 +7,71 @@
 #include <atomic>
 #include <macro.hh>
 
-std::klock malloc_lock;
 namespace kheap {
+		
+	std::klock malloc_lock;
 
-uint64_t kernel_heap_max_size_pages = 0x0;
-uintptr_t kernel_heap_base_address = 0x0;
-uint8_t *kernel_heap_bitmap = 0x0;
+	uint64_t kernel_heap_max_size_pages = 0x0;
+	uintptr_t kernel_heap_base_address = 0x0;
+	uint8_t *kernel_heap_bitmap = 0x0;
 
 
-void init(size_t max_heap_size_pages)
-{
-    kernel_heap_base_address = ALIGN_UP(pmm::highestAddressUsable + pmm::hhdm->offset, PAGE_SIZE);
+	void init(size_t max_heap_size_pages)
+	{
+		kernel_heap_base_address = ALIGN_UP(pmm::highestAddressUsable + pmm::hhdm->offset, PAGE_SIZE);
 
-    kernel_heap_max_size_pages = max_heap_size_pages;
+		kernel_heap_max_size_pages = max_heap_size_pages;
 
-    kernel_heap_bitmap = (uint8_t*)pmm::claim(DIV_ROUNDUP(DIV_ROUNDUP(kernel_heap_max_size_pages, PAGE_SIZE), 8));
-    if (!kernel_heap_bitmap) {
-        intr::kpanic(nullptr, "Not enough memory for kernel heap bitmap");
-    }
-    kernel_heap_bitmap += pmm::hhdm->offset;
-    std::memset(kernel_heap_bitmap, 0x00, PAGE_SIZE);
+		kernel_heap_bitmap = (uint8_t*)pmm::claim(DIV_ROUNDUP(DIV_ROUNDUP(kernel_heap_max_size_pages, PAGE_SIZE), 8));
+		if (!kernel_heap_bitmap) {
+			intr::kpanic(nullptr, "Not enough memory for kernel heap bitmap");
+		}
+		kernel_heap_bitmap += pmm::hhdm->offset;
+		std::memset(kernel_heap_bitmap, 0x00, PAGE_SIZE);
 
-	kprintf(" ->> Kernel heap bitmap initialized at %p\n", kernel_heap_bitmap);
-    kprintf(" -> %lu MiB dynamic memory available\n", kernel_heap_max_size_pages / (1024 * 1024));
-}
+		kprintf(" ->> Kernel heap bitmap initialized at %p\n", kernel_heap_bitmap);
+		kprintf(" -> %lu MiB dynamic memory available\n", kernel_heap_max_size_pages / (1024 * 1024));
+	}
 
-void *get_page_at(uintptr_t address)
-{
-    if (BITMAP_READ_BIT(kernel_heap_bitmap, (address - kernel_heap_base_address) / PAGE_SIZE) != 0) {
-        intr::kpanic(nullptr, "trying to allocate heap page that was never freed");
-    }
-    void *new_page = pmm::claim(1);
-    if (new_page == nullptr) {
-        return nullptr;
-    }
-    mmu::kernel_pmc.map(address, (uintptr_t)new_page, mmu::PTE_BIT_PRESENT | mmu::PTE_BIT_EXECUTE_DISABLE | mmu::PTE_BIT_READ_WRITE);
-    BITMAP_SET_BIT(kernel_heap_bitmap, (address - kernel_heap_base_address) / PAGE_SIZE);
+	void *get_page_at(uintptr_t address)
+	{
+		if (BITMAP_READ_BIT(kernel_heap_bitmap, (address - kernel_heap_base_address) / PAGE_SIZE) != 0) {
+			intr::kpanic(nullptr, "trying to allocate heap page that was never freed");
+		}
+		void *new_page = pmm::claim(1);
+		if (new_page == nullptr) {
+			return nullptr;
+		}
+		mmu::kernel_pmc.map(address, (uintptr_t)new_page, mmu::PTE_BIT_PRESENT | mmu::PTE_BIT_EXECUTE_DISABLE | mmu::PTE_BIT_READ_WRITE);
+		BITMAP_SET_BIT(kernel_heap_bitmap, (address - kernel_heap_base_address) / PAGE_SIZE);
 
-    return (void *)address;
-}
+		return (void *)address;
+	}
 
-void *return_page_at(uintptr_t address)
-{
-    if (BITMAP_READ_BIT(kernel_heap_bitmap, (address - kernel_heap_base_address) / PAGE_SIZE) == 0) {
-        return 0;
-    }
-    BITMAP_UNSET_BIT(kernel_heap_bitmap, (address - kernel_heap_base_address) / PAGE_SIZE);
+	void *return_page_at(uintptr_t address)
+	{
+		if (BITMAP_READ_BIT(kernel_heap_bitmap, (address - kernel_heap_base_address) / PAGE_SIZE) == 0) {
+			return 0;
+		}
+		BITMAP_UNSET_BIT(kernel_heap_bitmap, (address - kernel_heap_base_address) / PAGE_SIZE);
 
-    mmu::kernel_pmc.unmap(address, 1);
+		mmu::kernel_pmc.unmap(address, 1);
 
-    return 0;
-}
+		return 0;
+	}
 
 }
 
 extern "C" {
 
 extern int liballoc_lock() {
-    malloc_lock.a();
+    kheap::malloc_lock.a();
     return 0;
 }
 
 
 extern int liballoc_unlock() {
-    malloc_lock.r();
+    kheap::malloc_lock.r();
     return 0;
 }
 

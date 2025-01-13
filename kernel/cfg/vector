@@ -7,173 +7,148 @@
 
 namespace std {
 
-template<typename T>
-struct remove_reference { using type = T; };
+    template<typename T>
+    struct remove_reference { using type = T; };
 
-template<typename T>
-struct remove_reference<T&> { using type = T; };
+    template<typename T>
+    struct remove_reference<T&> { using type = T; };
 
-template<typename T>
-struct remove_reference<T&&> { using type = T; };
+    template<typename T>
+    struct remove_reference<T&&> { using type = T; };
 
-template<typename T>
-constexpr typename remove_reference<T>::type&& move(T&& arg) noexcept {
-    return static_cast<typename remove_reference<T>::type&&>(arg);
-}
-
-template <typename T>
-T&& forward(typename remove_reference<T>::type& t) noexcept {
-    return static_cast<T&&>(t);
-}
-
-template <typename T>
-T&& forward(typename remove_reference<T>::type&& t) noexcept {
-    return static_cast<T&&>(t);
-}
-
-template <typename T>
-class vector {
-public:
-    vector();
-    ~vector() noexcept;
-    vector(const vector& other);
-    vector& operator=(const vector& other);
-
-    void push_back(const T& value);
-    void pop_back();
-    T& operator[](size_t index);
-    const T& operator[](size_t index) const;
-    size_t size() const noexcept;
-    size_t capacity() const noexcept;
-    bool empty() const noexcept;
-    void clear() noexcept {
-        destroy_elements();
-        _size = 0;
+    template<typename T>
+    constexpr typename remove_reference<T>::type&& move(T&& arg) noexcept {
+        return static_cast<typename remove_reference<T>::type&&>(arg);
     }
 
-    template <typename... Args>
-    void emplace_back(Args&&... args);
+    template <typename T>
+    T&& forward(typename remove_reference<T>::type& t) noexcept {
+        return static_cast<T&&>(t);
+    }
 
-    void assign(const T* data, size_t size);
+    template <typename T>
+    T&& forward(typename remove_reference<T>::type&& t) noexcept {
+        return static_cast<T&&>(t);
+    }
 
-    class iterator {
+    template <typename T>
+    class vector {
     public:
-        iterator(T* ptr) : ptr(ptr) {}
+        vector();
+        ~vector() noexcept;
+        vector(const vector& other);
+        vector& operator=(const vector& other);
 
-        T& operator*() const { return *ptr; }
-        T* operator->() { return ptr; }
-
-        iterator& operator++() { 
-            ++ptr; 
-            return *this; 
+        void push_back(const T& value);
+        void pop_back();
+        T& operator[](size_t index);
+        const T& operator[](size_t index) const;
+        size_t size() const noexcept;
+        size_t capacity() const noexcept;
+        bool empty() const noexcept;
+        void clear() noexcept {
+            destroy_elements();
+            _size = 0;
         }
 
-        iterator operator++(int) { 
-            iterator tmp = *this; 
-            ++(*this); 
-            return tmp; 
-        }
+        template <typename... Args>
+        void emplace_back(Args&&... args);
 
-        friend bool operator==(const iterator& a, const iterator& b) { return a.ptr == b.ptr; }
-        friend bool operator!=(const iterator& a, const iterator& b) { return a.ptr != b.ptr; }
-        friend bool operator<(const iterator& a, const iterator& b) { return a.ptr < b.ptr; }
-        friend bool operator>=(const iterator& a, const iterator& b) { return a.ptr >= b.ptr; }
+        void assign(const T* data, size_t size);
+
+        class iterator {
+        public:
+            iterator(T* ptr) : ptr(ptr) {}
+
+            T& operator*() const { return *ptr; }
+            T* operator->() { return ptr; }
+
+            iterator& operator++() { 
+                ++ptr; 
+                return *this; 
+            }
+
+            iterator operator++(int) { 
+                iterator tmp = *this; 
+                ++(*this); 
+                return tmp; 
+            }
+
+            friend bool operator==(const iterator& a, const iterator& b) { return a.ptr == b.ptr; }
+            friend bool operator!=(const iterator& a, const iterator& b) { return a.ptr != b.ptr; }
+            friend bool operator<(const iterator& a, const iterator& b) { return a.ptr < b.ptr; }
+            friend bool operator>=(const iterator& a, const iterator& b) { return a.ptr >= b.ptr; }
+
+        private:
+            T* ptr;
+            friend class vector;
+        };
+
+        iterator begin() { return iterator(data); }
+        iterator end() { return iterator(data + _size); }
+
+        class const_iterator {
+        public:
+            const_iterator(const T* ptr) : ptr(ptr) {}
+
+            const T& operator*() const { return *ptr; }
+            const T* operator->() const { return ptr; }
+
+            const_iterator& operator++() { 
+                ++ptr; 
+                return *this; 
+            }  
+
+            const_iterator operator++(int) { 
+                const_iterator tmp = *this; 
+                ++(*this); 
+                return tmp; 
+            }
+
+            const_iterator operator+(size_t n) const {
+                return const_iterator(ptr + n);
+            }
+
+            friend bool operator==(const const_iterator& a, const const_iterator& b) { return a.ptr == b.ptr; }
+            friend bool operator!=(const const_iterator& a, const const_iterator& b) { return a.ptr != b.ptr; }
+            friend bool operator<(const const_iterator& a, const const_iterator& b) { return a.ptr < b.ptr; }
+            friend bool operator>=(const const_iterator& a, const const_iterator& b) { return a.ptr >= b.ptr; }
+
+        private:
+            const T* ptr;
+        };
+
+        const_iterator begin() const { return const_iterator(data); }
+        const_iterator end() const { return const_iterator(data + _size); }
+
+        void erase(iterator pos);
 
     private:
-        T* ptr;
-        friend class vector;
+        T* data;
+        size_t _size;
+        size_t _capacity;
+
+        void resize(size_t new_capacity);
+        void destroy_elements() noexcept;
     };
 
-    iterator begin() { return iterator(data); }
-    iterator end() { return iterator(data + _size); }
+    template <typename T>
+    vector<T>::vector() : data(nullptr), _size(0), _capacity(0) {}
 
-    class const_iterator {
-    public:
-        const_iterator(const T* ptr) : ptr(ptr) {}
-
-        const T& operator*() const { return *ptr; }
-        const T* operator->() const { return ptr; }
-
-        const_iterator& operator++() { 
-            ++ptr; 
-            return *this; 
-        }  
-
-        const_iterator operator++(int) { 
-            const_iterator tmp = *this; 
-            ++(*this); 
-            return tmp; 
-        }
-
-        const_iterator operator+(size_t n) const {
-            return const_iterator(ptr + n);
-        }
-
-        friend bool operator==(const const_iterator& a, const const_iterator& b) { return a.ptr == b.ptr; }
-        friend bool operator!=(const const_iterator& a, const const_iterator& b) { return a.ptr != b.ptr; }
-        friend bool operator<(const const_iterator& a, const const_iterator& b) { return a.ptr < b.ptr; }
-        friend bool operator>=(const const_iterator& a, const const_iterator& b) { return a.ptr >= b.ptr; }
-
-    private:
-        const T* ptr;
-    };
-
-    const_iterator begin() const { return const_iterator(data); }
-    const_iterator end() const { return const_iterator(data + _size); }
-
-    void erase(iterator pos);
-
-private:
-    T* data;
-    size_t _size;
-    size_t _capacity;
-
-    void resize(size_t new_capacity);
-    void destroy_elements() noexcept;
-};
-
-template <typename T>
-vector<T>::vector() : data(nullptr), _size(0), _capacity(0) {}
-
-template <typename T>
-vector<T>::~vector() noexcept {
-    destroy_elements();
-    if (data) {
-        ufree(data);
-    }
-}
-
-template <typename T>
-vector<T>::vector(const vector& other) : data(nullptr), _size(0), _capacity(0) {
-    if (other._size > 0) {
-		data = new T[other._capacity];
-        if (!data) {
-            intr::kpanic(nullptr, "bad_alloc()");
-        }
-        for (size_t i = 0; i < other._size; ++i) {
-            new (&data[i]) T(other.data[i]);
-        }
-        _size = other._size;
-        _capacity = other._capacity;
-    }
-}
-
-template <typename T>
-vector<T>& vector<T>::operator=(const vector& other) {
-    if (this != &other) {
+    template <typename T>
+    vector<T>::~vector() noexcept {
         destroy_elements();
         if (data) {
-			delete [] data;
+            ufree(data);
         }
+    }
 
-        data = nullptr;
-        _size = 0;
-        _capacity = 0;
-
+    template <typename T>
+    vector<T>::vector(const vector& other) : data(nullptr), _size(0), _capacity(0) {
         if (other._size > 0) {
-			data = new T[other._capacity];
+            data = new T[other._capacity];
             if (!data) {
-				intr::kpanic(nullptr, "bad_alloc()");
+                intr::kpanic(nullptr, "bad_alloc()");
             }
             for (size_t i = 0; i < other._size; ++i) {
                 new (&data[i]) T(other.data[i]);
@@ -182,114 +157,139 @@ vector<T>& vector<T>::operator=(const vector& other) {
             _capacity = other._capacity;
         }
     }
-    return *this;
-}
 
-template <typename T>
-void vector<T>::push_back(const T& value) {
-    if (_size == _capacity) {
-        resize(_capacity == 0 ? 4 : _capacity * 2);
-    }
-    new (&data[_size]) T(value);
-    ++_size;
-}
+    template <typename T>
+    vector<T>& vector<T>::operator=(const vector& other) {
+        if (this != &other) {
+            destroy_elements();
+            if (data) {
+                delete [] data;
+            }
 
-template <typename T>
-void vector<T>::pop_back() {
-    if (_size == 0) {
-        intr::kpanic(nullptr, "pop_back() called on empty vector");
-    }
-    data[--_size].~T();
-}
+            data = nullptr;
+            _size = 0;
+            _capacity = 0;
 
-template <typename T>
-T& vector<T>::operator[](size_t index) {
-    if (index >= _size) {
-        intr::kpanic(nullptr, "index out of range");
-    }
-    return data[index];
-}
-
-template <typename T>
-const T& vector<T>::operator[](size_t index) const {
-    if (index >= _size) {
-        intr::kpanic(nullptr, "index out of range");
-    }
-    return data[index];
-}
-
-template <typename T>
-size_t vector<T>::size() const noexcept {
-    return _size;
-}
-
-template <typename T>
-size_t vector<T>::capacity() const noexcept {
-    return _capacity;
-}
-
-template <typename T>
-bool vector<T>::empty() const noexcept {
-    return _size == 0;
-}
-
-template <typename T>
-template <typename... Args>
-void vector<T>::emplace_back(Args&&... args) {
-    if (_size == _capacity) {
-        resize(_capacity == 0 ? 1 : _capacity * 2);
-    }
-    new (&data[_size]) T(std::forward<Args>(args)...);
-    ++_size;
-}
-
-template <typename T>
-void vector<T>::resize(size_t new_capacity) {
-    T* new_data = new T[new_capacity];
-    for (size_t i = 0; i < _size; ++i) {
-        new (&new_data[i]) T(std::move(data[i]));
-    }
-
-    destroy_elements();
-    delete[] data;
-
-    data = new_data;
-    _capacity = new_capacity;
-}
-
-template <typename T>
-void vector<T>::destroy_elements() noexcept {
-    for (size_t i = 0; i < _size; ++i) {
-        data[i].~T();
-    }
-}
-
-template <typename T>
-void vector<T>::erase(iterator pos) {
-    if (pos < begin() || pos >= end()) {
-        intr::kpanic(nullptr, "iterator out of range");
-    }
-    size_t index = pos.ptr - data;
-    if (index < _size) {
-        data[index].~T();
-        for (size_t i = index; i < _size - 1; ++i) {
-            new (&data[i]) T(std::move(data[i + 1]));
-            data[i + 1].~T();
+            if (other._size > 0) {
+                data = new T[other._capacity];
+                if (!data) {
+                    intr::kpanic(nullptr, "bad_alloc()");
+                }
+                for (size_t i = 0; i < other._size; ++i) {
+                    new (&data[i]) T(other.data[i]);
+                }
+                _size = other._size;
+                _capacity = other._capacity;
+            }
         }
-        --_size;
+        return *this;
     }
-}
 
-template <typename T>
-void vector<T>::assign(const T* data, size_t size) {
-    if (size > _capacity) {
-        resize(size);
+    template <typename T>
+    void vector<T>::push_back(const T& value) {
+        if (_size == _capacity) {
+            resize(_capacity == 0 ? 4 : _capacity * 2);
+        }
+        new (&data[_size]) T(value);
+        ++_size;
     }
-    destroy_elements();
-    for (size_t i = 0; i < size; ++i) {
-        new (&this->data[i]) T(data[i]);
+
+    template <typename T>
+    void vector<T>::pop_back() {
+        if (_size == 0) {
+            intr::kpanic(nullptr, "pop_back() called on empty vector");
+        }
+        data[--_size].~T();
     }
-    _size = size;
-}
+
+    template <typename T>
+    T& vector<T>::operator[](size_t index) {
+        if (index >= _size) {
+            intr::kpanic(nullptr, "index out of range");
+        }
+        return data[index];
+    }
+
+    template <typename T>
+    const T& vector<T>::operator[](size_t index) const {
+        if (index >= _size) {
+            intr::kpanic(nullptr, "index out of range");
+        }
+        return data[index];
+    }
+
+    template <typename T>
+    size_t vector<T>::size() const noexcept {
+        return _size;
+    }
+
+    template <typename T>
+    size_t vector<T>::capacity() const noexcept {
+        return _capacity;
+    }
+
+    template <typename T>
+    bool vector<T>::empty() const noexcept {
+        return _size == 0;
+    }
+
+    template <typename T>
+    template <typename... Args>
+    void vector<T>::emplace_back(Args&&... args) {
+        if (_size == _capacity) {
+            resize(_capacity == 0 ? 1 : _capacity * 2);
+        }
+        new (&data[_size]) T(std::forward<Args>(args)...);
+        ++_size;
+    }
+
+    template <typename T>
+    void vector<T>::resize(size_t new_capacity) {
+        T* new_data = new T[new_capacity];
+        for (size_t i = 0; i < _size; ++i) {
+            new (&new_data[i]) T(std::move(data[i]));
+        }
+
+        destroy_elements();
+        delete[] data;
+
+        data = new_data;
+        _capacity = new_capacity;
+    }
+
+    template <typename T>
+    void vector<T>::destroy_elements() noexcept {
+        for (size_t i = 0; i < _size; ++i) {
+            data[i].~T();
+        }
+    }
+
+    template <typename T>
+    void vector<T>::erase(iterator pos) {
+        if (pos < begin() || pos >= end()) {
+            intr::kpanic(nullptr, "iterator out of range");
+        }
+        size_t index = pos.ptr - data;
+        if (index < _size) {
+            data[index].~T();
+            for (size_t i = index; i < _size - 1; ++i) {
+                new (&data[i]) T(std::move(data[i + 1]));
+                data[i + 1].~T();
+            }
+            --_size;
+        }
+    }
+
+    template <typename T>
+    void vector<T>::assign(const T* data, size_t size) {
+        if (size > _capacity) {
+            resize(size);
+        }
+        destroy_elements();
+        for (size_t i = 0; i < size; ++i) {
+            new (&this->data[i]) T(data[i]);
+        }
+        _size = size;
+    }
 
 }  // namespace std

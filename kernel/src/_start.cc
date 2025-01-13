@@ -14,21 +14,21 @@
 
 
 extern "C" {
-__attribute__((used, section(".requests"))) static volatile LIMINE_BASE_REVISION(2);
+    __attribute__((used, section(".requests"))) static volatile LIMINE_BASE_REVISION(2);
 
-extern void (*start_ctors)();
-extern void (*end_ctors)();
-extern void (*start_dtors)();
-extern void (*end_dtors)();
-void *__dso_handle;
+    extern void (*start_ctors)();
+    extern void (*end_ctors)();
+    extern void (*start_dtors)();
+    extern void (*end_dtors)();
+    void *__dso_handle;
 
-void __cxa_finalize(void *f) {(void)f;};
-int __cxa_atexit(void (*destructor) (void *), void *arg, void *dso) {
-    (void)destructor; (void)arg; (void)dso; return 0;
-}
-extern void __cxa_pure_virtual(void) {};
-extern "C" uint8_t kmain(void);
-void __shutdown(void);
+    void __cxa_finalize(void *f) {(void)f;};
+    int __cxa_atexit(void (*destructor) (void *), void *arg, void *dso) {
+        (void)destructor; (void)arg; (void)dso; return 0;
+    }
+    extern void __cxa_pure_virtual(void) {};
+    extern "C" uint8_t kmain(void);
+    void __shutdown(void);
 }
 
 namespace __cxxabiv1 {

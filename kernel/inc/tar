@@ -5,41 +5,41 @@
 
 namespace tar {
 
-struct Header {
-    char name[100];
-    char mode[8];
-    char uid[8];
-    char gid[8];
-    char size[12];
-    char mtime[12];
-    char checksum[8];
-    char typeflag;
-    char linkname[100];
-    char magic[6];
-    char version[2];
-    char uname[32];
-    char gname[32];
-    char devmajor[8];
-    char devminor[8];
-    char prefix[155];
-    char padding[12];
-};
+    struct Header {
+        char name[100];
+        char mode[8];
+        char uid[8];
+        char gid[8];
+        char size[12];
+        char mtime[12];
+        char checksum[8];
+        char typeflag;
+        char linkname[100];
+        char magic[6];
+        char version[2];
+        char uname[32];
+        char gname[32];
+        char devmajor[8];
+        char devminor[8];
+        char prefix[155];
+        char padding[12];
+    };
 
-class TarParser {
-public:
-    TarParser(const uint8_t* data, size_t size);
-    bool next();
-    const Header* currentHeader() const;
-    const uint8_t* currentFileData() const;
-    size_t currentFileSize() const;
-    uint8_t* currentFileData();
+    class TarParser {
+    public:
+        TarParser(const uint8_t* data, size_t size);
+        bool next();
+        const Header* currentHeader() const;
+        const uint8_t* currentFileData() const;
+        size_t currentFileSize() const;
+        uint8_t* currentFileData();
 
-private:
-    const uint8_t* data;
-    size_t size;
-    size_t offset;
-    const Header* currentHeaderPtr;
-    size_t fileSize;
-};
+    private:
+        const uint8_t* data;
+        size_t size;
+        size_t offset;
+        const Header* currentHeaderPtr;
+        size_t fileSize;
+    };
 
 } // namespace tar
