@@ -38,11 +38,10 @@ reinstall-limine:
 run:
 	@clear
 	@qemu-system-x86_64 -drive format=raw,file=$(BUILD_DIR)/image.hdd \
-			-m 4G -enable-kvm -cpu EPYC,+svm -smp $(CORES) -M q35 \
+			-m 4G -enable-kvm -cpu host,+svm -smp cores=$(CORES) -M q35 \
 			-debugcon stdio \
 			--no-reboot \
 			-serial file:$(BUILD_DIR)/serial_output.txt \
-			-monitor file:$(BUILD_DIR)/monitor_output.txt \
 			-d int -M smm=off \
 			-device pci-bridge,chassis_nr=3,id=b2 \
 			-D $(BUILD_DIR)/qemu_log.txt -d guest_errors,cpu_reset

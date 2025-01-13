@@ -1,6 +1,6 @@
-#include <cpuid.hpp>
+#include <cpuid.hh>
 #include <cstring>
-#include <sys/idt.hpp>
+#include <sys/idt.hh>
 
 extern "C" bool __get_cpuid(uint32_t op, uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx) {
     __asm__ __volatile__(

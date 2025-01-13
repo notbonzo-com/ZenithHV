@@ -1,4 +1,4 @@
-#include <sys/idt.hpp>
+#include <sys/idt.hh>
 #include <io>
 #include <kprintf>
 #include <atomic>

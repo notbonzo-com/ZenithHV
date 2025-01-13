@@ -5,11 +5,13 @@
 #include <kmalloc>
 #include <io>
 
-#include <sys/gdt.hpp>
-#include <sys/idt.hpp>
-#include <sys/mm/pmm.hpp>
-#include <sys/mm/mmu.hpp>
-#include <sys/mm/kheap.hpp>
+#include <sys/gdt.hh>
+#include <sys/idt.hh>
+#include <sys/mm/pmm.hh>
+#include <sys/mm/mmu.hh>
+#include <sys/mm/kheap.hh>
+#include <sys/acpi.hh>
+
 
 extern "C" {
 __attribute__((used, section(".requests"))) static volatile LIMINE_BASE_REVISION(2);
@@ -64,6 +66,8 @@ extern "C" [[noreturn]] void _start(void)
     kprintf(" -> VMM initialization complete\n");
     debugf("Initilisng the Kernel Heap");
     kheap::init((0xFFul * 1024ul * 1024ul * 4096ul) / PAGE_SIZE);
+    debugf("Parsing the ACPI tables");
+    acpi::parse();
 
     debugf("Calling KMain");
     uint8_t returnCode = kmain();

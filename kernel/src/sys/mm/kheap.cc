@@ -1,11 +1,11 @@
-#include <sys/mm/kheap.hpp>
-#include <sys/mm/mmu.hpp>
-#include <sys/mm/pmm.hpp>
-#include <sys/idt.hpp>
+#include <sys/mm/kheap.hh>
+#include <sys/mm/mmu.hh>
+#include <sys/mm/pmm.hh>
+#include <sys/idt.hh>
 #include <kprintf>
 #include <cstring>
 #include <atomic>
-#include <macro.hpp>
+#include <macro.hh>
 
 std::klock malloc_lock;
 namespace kheap {

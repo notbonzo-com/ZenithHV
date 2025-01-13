@@ -1,4 +1,4 @@
-#include <sys/gdt.hpp>
+#include <sys/gdt.hh>
 #include <kprintf>
 
 namespace gdt

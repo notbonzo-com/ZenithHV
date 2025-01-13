@@ -7,8 +7,8 @@ override ASFILES := $(shell find -L * -type f -name '*.S')
 override NASMFILES := $(shell find -L * -type f -name '*.asm')
 override ASFILES := $(shell find -L * -type f -name '*.S')
 override HEADER_DEPS := $(addprefix $(BUILD_DIR)/kernel/obj/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
-override CXXFILES := $(shell find -L * -type f -name '*.cpp')
-override OBJ := $(addprefix $(BUILD_DIR)/kernel/obj/,$(CFILES:.c=.c.o) $(CXXFILES:.cpp=.cpp.o) $(ASFILES:.S=.S.o) $(NASMFILES:.asm=.asm.o))
+override CXXFILES := $(shell find -L * -type f -name '*.cc')
+override OBJ := $(addprefix $(BUILD_DIR)/kernel/obj/,$(CFILES:.c=.c.o) $(CXXFILES:.cc=.cc.o) $(ASFILES:.S=.S.o) $(NASMFILES:.asm=.asm.o))
 
 override CC := $(DEFAULT_CC)
 override CXX := $(DEFAULT_CXX)
@@ -32,7 +32,7 @@ $(BUILD_DIR)/kernel/obj/%.c.o: %.c GNUmakefile cfg/limine.h
 	@echo "$(ANSI_GREEN)COMPILING$(ANSI_RESET) $<"
 	@$(CC) $(KERNEL_CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/kernel/obj/%.cpp.o: %.cpp GNUmakefile cfg/limine.h
+$(BUILD_DIR)/kernel/obj/%.cc.o: %.cc GNUmakefile cfg/limine.h
 	@mkdir -p "$$(dirname $@)"
 	@echo "$(ANSI_GREEN)COMPILING$(ANSI_RESET) $<"
 	@$(CXX) $(KERNEL_CXXFLAGS) $(CPPFLAGS) -c $< -o $@

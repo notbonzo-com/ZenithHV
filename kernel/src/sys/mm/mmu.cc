@@ -1,11 +1,11 @@
-#include <sys/mm/mmu.hpp>
-#include <sys/mm/pmm.hpp>
+#include <sys/mm/mmu.hh>
+#include <sys/mm/pmm.hh>
 #include <kprintf>
 #include <atomic>
 #include <cstring>
-#include <sys/idt.hpp>
-#include <macro.hpp>
-#include <cpuid.hpp>
+#include <sys/idt.hh>
+#include <macro.hh>
+#include <cpuid.hh>
 
 namespace mmu {
 

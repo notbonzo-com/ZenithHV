@@ -1,8 +1,8 @@
-#include <sys/mm/pmm.hpp>
+#include <sys/mm/pmm.hh>
 #include <limine.h>
-#include <sys/idt.hpp>
+#include <sys/idt.hh>
 #include <cstring>
-#include <macro.hpp>
+#include <macro.hh>
 #include <kprintf>
 
 namespace pmm {
