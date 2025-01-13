@@ -119,7 +119,7 @@ void cpuid_compatibility_check(struct cpuid_data_common *data)
     if (!(data->feature_flags_edx & (1 << 0))) okay = false;
 
     if (!okay) {
-        intr::kpanic(NULL, "Missing CPUID support");
+        intr::kpanic(nullptr, "Missing CPUID support");
     }
 }
 

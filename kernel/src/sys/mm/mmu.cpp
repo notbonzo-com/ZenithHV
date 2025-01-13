@@ -1,11 +1,9 @@
 #include <sys/mm/mmu.hpp>
 #include <sys/mm/pmm.hpp>
-#include <utility>
 #include <kprintf>
 #include <atomic>
 #include <cstring>
 #include <sys/idt.hpp>
-#include <sys/apic.hpp>
 #include <macro.hpp>
 #include <cpuid.hpp>
 
@@ -29,19 +27,7 @@ struct limine_kernel_address_response *kernel_address;
 
 std::klock map_page_lock;
 
-static uint64_t *get_below_pml(uint64_t *pml_pointer, uint64_t index, bool force);
-static uint64_t *pml4_to_pt(uint64_t *pml4, uint64_t va, bool force);
-
-static inline void tlb_flush()
-{
-    __asm__ volatile (
-        "movq %%cr3, %%rax\n\
-        movq %%rax, %%cr3\n"
-        : : : "rax"
-   );
-}
-
-void init()
+void page_map_ctx::init()
 {
     kprintf(" -> Initializing Virtual Memory Manager\n");
     
@@ -80,12 +66,12 @@ void init()
 
     kprintf(" -> Mapping kernel PMM structures\n");
     for (size_t off = 0; off < ALIGN_UP(pmm::totalBytesPmmStructures, PAGE_SIZE); off += PAGE_SIZE) {
-        map(&kernel_pmc, (uintptr_t)pmm::pageBitmap + off, (uintptr_t)pmm::pageBitmap - pmm::hhdm->offset + off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
+        map((uintptr_t)pmm::pageBitmap + off, (uintptr_t)pmm::pageBitmap - pmm::hhdm->offset + off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
     }
 
-    kprintf(" -> Mapping lapic\n");
-    map(&kernel_pmc, ALIGN_DOWN((lapic::lapic_address + pmm::hhdm->offset), PAGE_SIZE), ALIGN_DOWN(lapic::lapic_address, PAGE_SIZE), PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
-    lapic::lapic_address += pmm::hhdm->offset;
+    // kprintf(" -> Mapping lapic\n");
+    // map(ALIGN_DOWN((lapic::lapic_address + pmm::hhdm->offset), PAGE_SIZE), ALIGN_DOWN(lapic::lapic_address, PAGE_SIZE), PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
+    // lapic::lapic_address += pmm::hhdm->offset;
 
     kprintf(" -> Mapping usable memory and framebuffer\n");
     for (size_t i = 0; i < pmm::memmap->entry_count; i++) {
@@ -93,19 +79,19 @@ void init()
 
         if (entry->type == LIMINE_MEMMAP_USABLE) {
             for (size_t off = entry->base; off < entry->base + entry->length; off += PAGE_SIZE) {
-                map(&kernel_pmc, off + pmm::hhdm->offset, off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
+                map(off + pmm::hhdm->offset, off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
             }
         }
         else if (entry->type == LIMINE_MEMMAP_FRAMEBUFFER) {
             for (size_t off = 0; off < ALIGN_UP(entry->base + entry->length, PAGE_SIZE); off += PAGE_SIZE) {
                 uintptr_t base_off_aligned = ALIGN_UP(entry->base + off, PAGE_SIZE);
-                map(&kernel_pmc, base_off_aligned + pmm::hhdm->offset, base_off_aligned,
+                map(base_off_aligned + pmm::hhdm->offset, base_off_aligned,
                     PTE_BIT_PRESENT | PTE_BIT_READ_WRITE | PTE_BIT_EXECUTE_DISABLE | PTE_BIT_WRITE_THROUGH_CACHING);
             }
         }
         else if (entry->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE) {
             for (size_t off = 0; off < ALIGN_UP(entry->base + entry->length, PAGE_SIZE); off += PAGE_SIZE) {
-                map(&kernel_pmc, entry->base + off + pmm::hhdm->offset, entry->base + off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
+                map(entry->base + off + pmm::hhdm->offset, entry->base + off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
             }
         }
     }
@@ -113,27 +99,21 @@ void init()
     kprintf(" -> Mapping kernel text segments\n");
     for (uintptr_t text_addr = text_start; text_addr < text_end; text_addr += PAGE_SIZE) {
         uintptr_t phys = text_addr - kernel_address->virtual_base + kernel_address->physical_base;
-        map(&kernel_pmc, text_addr, phys, PTE_BIT_PRESENT);
+        map(text_addr, phys, PTE_BIT_PRESENT);
     }
     kprintf(" -> Mapping the kernel rodata segment\n");
     for (uintptr_t rodata_addr = rodata_start; rodata_addr < rodata_end; rodata_addr += PAGE_SIZE) {
         uintptr_t phys = rodata_addr - kernel_address->virtual_base + kernel_address->physical_base;
-        map(&kernel_pmc, rodata_addr, phys, PTE_BIT_PRESENT | PTE_BIT_EXECUTE_DISABLE);
+        map(rodata_addr, phys, PTE_BIT_PRESENT | PTE_BIT_EXECUTE_DISABLE);
     }
     kprintf(" -> Mapping the kernel data segment\n");
     for (uintptr_t data_addr = data_start; data_addr < data_end; data_addr += PAGE_SIZE) {
         uintptr_t phys = data_addr - kernel_address->virtual_base + kernel_address->physical_base;
-        map(&kernel_pmc, data_addr, phys, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE | PTE_BIT_EXECUTE_DISABLE);
+        map(data_addr, phys, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE | PTE_BIT_EXECUTE_DISABLE);
     }
-
-    kprintf(" -> Setting the kernel context into cr3\n");
-    setCTX(&kernel_pmc);
-    kprintf(" -> Flushing the cr3\n");
-    tlb_flush();
-    kprintf(" -> VMM initialization complete\n");
 }
 
-static uint64_t *get_below_pml(uint64_t *pml_pointer, uint64_t index, bool force)
+uint64_t *page_map_ctx::get_below_pml(uint64_t *pml_pointer, uint64_t index, bool force)
 {
     if ((pml_pointer[index] & PTE_BIT_PRESENT) != 0) {
         return (uint64_t *)((pml_pointer[index] & 0x000ffffffffff000) + pmm::hhdm->offset);
@@ -152,7 +132,7 @@ static uint64_t *get_below_pml(uint64_t *pml_pointer, uint64_t index, bool force
     return (uint64_t *)((uint64_t)below_pml + pmm::hhdm->offset);
 }
 
-static uint64_t *pml4_to_pt(uint64_t *pml4, uint64_t va, bool force)
+uint64_t *page_map_ctx::pml4_to_pt(uint64_t *pml4, uint64_t va, bool force)
 {
     size_t pml4_index = (va & (0x1fful << 39)) >> 39,
            pdpt_index = (va & (0x1fful << 30)) >> 30,
@@ -178,11 +158,11 @@ static uint64_t *pml4_to_pt(uint64_t *pml4, uint64_t va, bool force)
     return pt;
 }
 
-void map(page_map_ctx *pmc, uintptr_t va, uintptr_t pa, uint64_t flags)
+void page_map_ctx::map(uintptr_t va, uintptr_t pa, uint64_t flags)
 {
     map_page_lock.a();
     size_t pt_index = (va & (0x1fful << 12)) >> 12;
-    uint64_t *pt = pml4_to_pt((uint64_t *)pmc->pml4_address, va, true);
+    uint64_t *pt = this->pml4_to_pt((uint64_t *)this->pml4_address, va, true);
     if (pt == nullptr) {
         intr::kpanic(nullptr, "Page table doesn't exist and didn't get created?");
     }
@@ -193,11 +173,11 @@ void map(page_map_ctx *pmc, uintptr_t va, uintptr_t pa, uint64_t flags)
     map_page_lock.r();
 }
 
-bool unmap(page_map_ctx *pmc, uintptr_t va, bool free_pa)
+bool page_map_ctx::unmap(uintptr_t va, bool free_pa)
 {
     map_page_lock.a();
     size_t pt_index = (va & (0x1fful << 12)) >> 12;
-    uint64_t *pt = pml4_to_pt((uint64_t *)pmc->pml4_address, va, false);
+    uint64_t *pt = this->pml4_to_pt((uint64_t *)this->pml4_address, va, false);
     if (pt == nullptr) {
         map_page_lock.r();
         return false;
@@ -219,18 +199,18 @@ bool unmap(page_map_ctx *pmc, uintptr_t va, bool free_pa)
 uintptr_t virt2phys(page_map_ctx *pmc, uintptr_t virt)
 {
     size_t pt_index = (virt & (0x1fful << 12)) >> 12;
-    uint64_t *pt = pml4_to_pt((uint64_t *)pmc->pml4_address, virt, false);
+    uint64_t *pt = page_map_ctx::pml4_to_pt((uint64_t *)pmc->pml4_address, virt, false);
     if (!pt) return (uintptr_t)nullptr;
     uint64_t mask = ((1ull << phys_addr_width) - 1) & ~0xFFF;
 
     return (pt[pt_index] & mask) | (virt & 0xFFF);
 }
 
-void setCTX(const page_map_ctx *pmc)
+void page_map_ctx::switch2()
 {
     __asm__ volatile (
         "movq %0, %%cr3\n"
-        : : "r" ((uint64_t *)(pmc->pml4_address - pmm::hhdm->offset)) : "memory"
+        : : "r" ((uint64_t *)(this->pml4_address - pmm::hhdm->offset)) : "memory"
     );
 }
 

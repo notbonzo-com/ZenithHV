@@ -3,18 +3,15 @@
 #include <sys/idt.hpp>
 #include <cstring>
 #include <macro.hpp>
-
-#include <utility>
 #include <kprintf>
-#include <atomic>
 
 namespace pmm {
 
-struct limine_memmap_response *memmap = NULL;
-struct limine_hhdm_response *hhdm = NULL;
+struct limine_memmap_response *memmap = nullptr;
+struct limine_hhdm_response *hhdm = nullptr;
 
 
-struct UsableEntry *usableEntries = NULL;
+struct UsableEntry *usableEntries = nullptr;
 
 uint8_t* pageBitmap;
 uint64_t pagesUsable;
@@ -33,13 +30,13 @@ static size_t _allocator_last_index = 0;
 struct limine_memmap_request memmap_request = {
     .id = LIMINE_MEMMAP_REQUEST,
     .revision = 0,
-    .response = NULL
+    .response = nullptr
 };
 
 struct limine_hhdm_request hhdm_request = {
     .id = LIMINE_HHDM_REQUEST,
     .revision = 0,
-    .response = NULL
+    .response = nullptr
 };
 
 void init()
@@ -49,7 +46,7 @@ void init()
     hhdm = hhdm_request.response;
 
     if (!memmap || !hhdm || memmap->entry_count <= 1) {
-        intr::kpanic(NULL, "Memmap or HHDM request failed");
+        intr::kpanic(nullptr, "Memmap or HHDM request failed");
     }
 
     kprintf(" -> Memmap and HHDM requests are valid with entry count: %zu\n", memmap->entry_count);
@@ -64,10 +61,8 @@ void init()
             memmapUsableEntryCount++;
             pagesUsable += DIV_ROUNDUP(entry->length, PAGE_SIZE);
             highestAddressUsable = MAX(highestAddressUsable, entry->base + entry->length);
-            kprintf("    -> Usable memory found: %llu pages added\n", DIV_ROUNDUP(entry->length, PAGE_SIZE));
         } else {
             pagesReserved += DIV_ROUNDUP(entry->length, PAGE_SIZE);
-            kprintf("    -> Reserved memory: %llu pages added\n", DIV_ROUNDUP(entry->length, PAGE_SIZE));
         }
     }
 
@@ -77,26 +72,29 @@ void init()
 
     totalBytesPmmStructures = ALIGN_UP(bitmapSizeBytes + memmapUsableEntryCount * sizeof(struct UsableEntry), PAGE_SIZE);
     kprintf(" -> Total bytes for PMM structures: %llu\n", totalBytesPmmStructures);
-
+    
     bool found = false;
-    for (size_t i = 0; i < memmap->entry_count; i++) {
-        struct limine_memmap_entry *entry = memmap->entries[i];
+    for (size_t i = memmap->entry_count; i > 0; i--) {
+        size_t index = i - 1;
+        struct limine_memmap_entry *entry = memmap->entries[index];
         if (entry->type == LIMINE_MEMMAP_USABLE && entry->length >= totalBytesPmmStructures) {
-            kprintf(" -> Suitable location found at entry %zu, base %p\n", i, entry->base);
-            pageBitmap = (uint8_t*)(entry->base + hhdm->offset);
+            uintptr_t aligned_top = ALIGN_DOWN(entry->base + entry->length - totalBytesPmmStructures, PAGE_SIZE);
+
+            kprintf(" -> Suitable location found at entry %zu, top-aligned base %p\n", index, aligned_top);
+
+            pageBitmap = (uint8_t*)(aligned_top + hhdm->offset);
             std::memset(pageBitmap, 0xFF, bitmapSizeBytes);
 
-            usableEntries = (UsableEntry*)(entry->base + hhdm->offset + bitmapSizeBytes);
+            usableEntries = (UsableEntry*)(aligned_top + hhdm->offset);
 
-            entry->length -= ALIGN_UP(totalBytesPmmStructures, PAGE_SIZE);
-            entry->base += ALIGN_UP(totalBytesPmmStructures, PAGE_SIZE);
-
+            entry->length = aligned_top - entry->base;
+            
             found = true;
             break;
         }
     }
     if (!found) {
-        intr::kpanic(NULL, "Failed to find suitable location for bitmap!");
+        intr::kpanic(nullptr, "Failed to find suitable location for bitmap!");
         __builtin_unreachable();
     }
 
@@ -108,7 +106,6 @@ void init()
                 BITMAP_UNSET_BIT(pageBitmap, (entry->base / PAGE_SIZE) + j);
             }
             kprintf(" -> Setting usable memory entry %zu: base %p, length %llu\n", usable_entry_index, entry->base, entry->length);
-            // fill usable entry tracking array
             *((uint64_t *)usableEntries + usable_entry_index * 2) = entry->base;
             *((uint64_t *)usableEntries + usable_entry_index * 2 + 1) = entry->length;
 
@@ -119,7 +116,7 @@ void init()
     if ((pagesUsable * PAGE_SIZE) / (1024 * 1024) < 1000) {
         debugf("! ! ! ! ! ! ! !");
         kprintf(" -> You are running with less than one gibbibyte!\n");
-        kprintf("    For absolutely no reason I recommend more than that!\n");
+        kprintf("    You are not going to have a lot of memory for the guest!\n");
     }
     kprintf(" -> PMM initialization complete\n");
 }
@@ -140,7 +137,7 @@ static void *searchFree(size_t *idx, size_t *pages_found, size_t count)
         *pages_found = 0;
     }
     (*idx)++;
-    return NULL;
+    return nullptr;
 }
 
 void* claim(size_t count) {

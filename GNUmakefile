@@ -3,20 +3,16 @@ CORES := $(shell nproc)
 BUILD_DIR := $(abspath ./build)
 EXTERNAL_DIR := $(abspath ./external)
 LIMINE_DIR := $(abspath $(EXTERNAL_DIR)/limine)
-export TOOLS_DIR := $(abspath ./tools)
 
 include config.mk
 
-all: lib kernel ramfs disk run
+all: kernel ramfs disk run
 
 kernel:
 	@make -C kernel/ BUILD_DIR=$(BUILD_DIR)
 
 ramfs:
 	@make -C ramfs/ BUILD_DIR=$(BUILD_DIR)
-
-lib:
-	@make -C $(TOOLS_DIR)/lib BUILD_DIR=$(BUILD_DIR)
 
 disk:
 	@dd if=/dev/zero bs=1M count=0 seek=64 of=$(BUILD_DIR)/image.hdd
@@ -42,7 +38,7 @@ reinstall-limine:
 run:
 	@clear
 	@qemu-system-x86_64 -drive format=raw,file=$(BUILD_DIR)/image.hdd \
-			-m 4G -enable-kvm -cpu host -smp $(CORES) -M q35 \
+			-m 4G -enable-kvm -cpu EPYC,+svm -smp $(CORES) -M q35 \
 			-debugcon stdio \
 			--no-reboot \
 			-serial file:$(BUILD_DIR)/serial_output.txt \
@@ -54,7 +50,6 @@ run:
 clean:
 	@clear
 	@make -C kernel/ clean
-	@make -C $(TOOLS_DIR)/lib clean
 	@rm -rf $(BUILD_DIR)/image.hdd $(BUILD_DIR)/image.iso iso_root/ $(BUILD_DIR)/initramfs.img
 	@rm -rf $(BUILD_DIR)/serial_output.txt $(BUILD_DIR)/monitor_output.txt $(BUILD_DIR)/qemu_log.txt
 

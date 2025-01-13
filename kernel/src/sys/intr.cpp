@@ -1,5 +1,4 @@
 #include <sys/idt.hpp>
-#include <utility>
 #include <io>
 #include <kprintf>
 #include <atomic>
@@ -62,7 +61,7 @@ void stacktrace(regs_t *regs) {
 
     asm volatile ("movq %%rbp, %0" : "=r"(rbp) ::);
 
-    while (rbp != NULL && (rip = (rbp + 1)) != 0) {
+    while (rbp != nullptr && (rip = (rbp + 1)) != 0) {
         kprintf("├────────────────────────────────────────────────┤\n");
         kprintf("│ RIP: 0x%016lx                        │\n", rip);
         rbp = (uint64_t *)*rbp;
@@ -143,14 +142,12 @@ static void print_register(const char *name, uint64_t value) {
 void kpanic(regs_t *nregs, const char* str)
 {
     regs_t regs;
-    if (nregs == NULL)
+    if (nregs == nullptr)
     {
         capture_regs(&regs);
         regs.error = 0xDEADBEEF;
         regs.interrupt = 0xDEADBEEF;
     } else {
-        // regs = *nregs; // May page fault (causing a double and then tripple fault), scary!
-        // Guess what! It does tripple fault!!! I SPENT TWO FUCKING HOURS DEBUGGING THIS SHIT WHILE MAKING THE VMM
         std::memcpy(&regs, nregs, sizeof(regs_t));
     }
 
@@ -200,7 +197,6 @@ void kpanic(regs_t *nregs, const char* str)
 
     kprintf("├───────────┼────────────────────────────────────────┼────────────────────┐\n");
     kprintf("│   RFLAGS  │                                        │                    │\n");
-    kprintf("└───────────┴────────────────────────────────────────┴────────────────────┘\n");
 
     uint64_t rflags = regs.rflags;
     kprintf("CF: %d | PF: %d | AF: %d | ZF: %d | SF: %d | TF: %d | IF: %d | DF: %d | OF: %d\n \
@@ -223,6 +219,7 @@ void kpanic(regs_t *nregs, const char* str)
             (rflags >> 19) & 1,
             (rflags >> 20) & 1,
             (rflags >> 21) & 1);
+    kprintf("└───────────┴────────────────────────────────────────┴────────────────────┘\n");
 
     stacktrace(&regs);
 
@@ -264,29 +261,15 @@ void init()
 }
 
 std::klock regvec_lock;
-std::klock ervec_lock;
-VolatileVector::VolatileVector(size_t vectorS, handler_t handler) {
-	std::auto_lock regvec_alock(regvec_lock);
-    vector = vectorS;
-    debugf("Registering Vector %zu to handler %p", vector, (void*)handler);
 
-    previousHandler = realHandler[vector];
-    // if (realHandler[vector] != reinterpret_cast<uintptr_t>(default_interrupt_handler) || !handler) {
-    //     kprintf("Vector %zu already registered\n", vector);
-    // }
-
-    realHandler[vector] = reinterpret_cast<uintptr_t>(handler);
-}
-
-VolatileVector::~VolatileVector() {
-	std::auto_lock ervec_alock(ervec_lock);
-    debugf("Restoring Vector %zu to handler %p", vector, (void*)previousHandler);
-
-    // if (realHandler[vector] == reinterpret_cast<uintptr_t>(default_interrupt_handler)) {
-    //     kprintf("Vector %zu not registered\n", vector);
-    // }
-
-    realHandler[vector] = previousHandler;
+bool register_handler(size_t vector, handler_t handler)
+{
+    std::auto_lock regvec_alock(regvec_lock);
+    if (realHandler[vector] == reinterpret_cast<uintptr_t>(default_interrupt_handler)) {
+        realHandler[vector] = reinterpret_cast<uintptr_t>(handler);
+        return true;
+    }
+    return false;
 }
 
 }

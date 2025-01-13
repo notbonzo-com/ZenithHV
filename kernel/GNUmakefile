@@ -23,7 +23,7 @@ cfg/limine.h:
 $(BUILD_DIR)/$(KERNEL): GNUmakefile cfg/linker.ld $(OBJ)
 	@mkdir -p "$$(dirname $@)"
 	@echo "$(ANSI_GREEN)LINKING$(ANSI_RESET) $@"
-	@$(CC) $(OBJ) $(BUILD_DIR)/libk.a $(KERNEL_LDFLAGS) -o $@
+	@$(CC) $(OBJ) $(KERNEL_LDFLAGS) -o $@
 
 -include $(HEADER_DEPS)
 

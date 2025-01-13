@@ -54,6 +54,12 @@ namespace intr
 
 	void kpanic(regs_t *regs, const char* str);
 
+	class VolatileVector {
+		size_t vector;
+		uintptr_t previousHandler;
+		public:
+		VolatileVector(size_t vectorS, handler_t handler);
+		~VolatileVector();
+	};
 	extern "C" void default_interrupt_handler(regs_t* CPU);
-	bool register_handler(size_t vector, handler_t handler);
 } // namespace intr

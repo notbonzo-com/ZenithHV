@@ -10,8 +10,6 @@
 #include <sys/mm/pmm.hpp>
 #include <sys/mm/mmu.hpp>
 #include <sys/mm/kheap.hpp>
-#include <sys/acpi.hpp>
-#include <sys/apic.hpp>
 
 extern "C" {
 __attribute__((used, section(".requests"))) static volatile LIMINE_BASE_REVISION(2);
@@ -53,35 +51,30 @@ extern "C" [[noreturn]] void _start(void)
 
     debugf("Initilizing the Global Descriptor Table");
     gdt::init();
-    debugf("Initilizing the Task State Segment");
-    tss::init();
     debugf("Initilizing the Interrupt Descriptor Table");
     intr::init();
     debugf("Initilizing the Physical Memory Manager");
     pmm::init();
     debugf("Initilizing the Virtual Memory Manager");
-    mmu::init();
+    mmu::kernel_pmc.init();
+    kprintf(" -> Setting the kernel context into cr3\n");
+    mmu::kernel_pmc.switch2();
+    kprintf(" -> Flushing the cr3\n");
+    mmu::tlb_flush();
+    kprintf(" -> VMM initialization complete\n");
     debugf("Initilisng the Kernel Heap");
     kheap::init((0xFFul * 1024ul * 1024ul * 4096ul) / PAGE_SIZE);
-    debugf("Initilizing the acpi tables");
-    acpi::parse();
-    debugf("Initilizing the IOAPIC");
-    ioapic::init();
-    debugf("Initilizing the LAPIC");
-    lapic::init();
-
 
     debugf("Calling KMain");
     uint8_t returnCode = kmain();
     if (returnCode != 0)
     {
         kprintf(" -> Kernel returned with exit code %d\n", returnCode);
-        intr::kpanic(NULL, "Kernel Main Returned Non-Zero!");
+        intr::kpanic(nullptr, "Kernel Main Returned Non-Zero!");
     }
 
     debugf("Attempting to shut down...");
     __shutdown();
-    debugf("Failed to shut down! Halting");
     asm volatile ("cli"); for(;;)asm volatile ("hlt");
 }
 
@@ -89,10 +82,6 @@ void __shutdown(void)
 {
     kprintf(" -> QEMU Shutdown\n");
     io::out<uint16_t>(0x604, 0x2000); // QEMU
-    for (int i = 0; i < 10000; i++)
-        asm volatile ("pause");
-    /* Explanation for the loop: QEMU Is restarted and doesnt interrupt everything to shut down, instad shuts down on the next timer interrupt.
-    (even if it isnt setup, it keeps in running internally) */
     kprintf(" -> VirtualBox Shutdown\n");
     io::out<uint16_t>(0x4004, 0x3400);
     return;

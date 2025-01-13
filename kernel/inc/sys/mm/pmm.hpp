@@ -4,13 +4,11 @@
 #include <stddef.h>
 #include <limine.h>
 
-#include <utility>
-
 #define PAGE_SIZE 0x1000ul
 
 namespace pmm {
 
-struct __pack UsableEntry {
+struct __attribute__((packed)) UsableEntry {
     uintptr_t base;
     size_t length;
 };
