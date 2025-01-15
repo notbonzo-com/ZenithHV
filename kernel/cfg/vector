@@ -50,6 +50,9 @@ namespace std {
             destroy_elements();
             _size = 0;
         }
+        T& back();
+        const T& back() const;
+
 
         template <typename... Args>
         void emplace_back(Args&&... args);
@@ -291,5 +294,22 @@ namespace std {
         }
         _size = size;
     }
+
+    template <typename T>
+    T& vector<T>::back() {
+        if (_size == 0) {
+            intr::kpanic(nullptr, "back() called on empty vector");
+        }
+        return data[_size - 1];
+    }
+
+    template <typename T>
+    const T& vector<T>::back() const {
+        if (_size == 0) {
+            intr::kpanic(nullptr, "back() called on empty vector");
+        }
+        return data[_size - 1];
+    }
+
 
 }  // namespace std

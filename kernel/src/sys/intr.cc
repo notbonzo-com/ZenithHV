@@ -230,12 +230,6 @@ namespace intr {
 
     void load()
     {
-        kprintf("  --> Loading the IDT\n");
-        kprintf("  ---> Offset: 0x%00x\n", reinterpret_cast<uintptr_t>(entries));
-        idtr.offset = reinterpret_cast<uintptr_t>(entries);
-        kprintf("  ---> Limit: 0x%00x\n", (uint16_t)(sizeof(entries) - 1));
-        idtr.limit = static_cast<uint16_t>(sizeof(entries) - 1);
-
         asm volatile (
             "lidt %0"
             : : "m"(idtr) : "memory"
@@ -256,6 +250,11 @@ namespace intr {
         }
 
         kprintf(" -> Loading the IDT Pointer into the IDTR register\n");
+        kprintf("  ---> Offset: 0x%00x\n", reinterpret_cast<uintptr_t>(entries));
+        idtr.offset = reinterpret_cast<uintptr_t>(entries);
+        kprintf("  ---> Limit: 0x%00x\n", (uint16_t)(sizeof(entries) - 1));
+        idtr.limit = static_cast<uint16_t>(sizeof(entries) - 1);
+
         load();
         kprintf(" -> IDT initialization complete\n");
     }

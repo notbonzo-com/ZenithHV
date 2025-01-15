@@ -11,7 +11,9 @@
 #include <sys/mm/mmu.hh>
 #include <sys/mm/kheap.hh>
 #include <sys/acpi.hh>
+#include <sys/apic.hh>
 
+#include <smp/smp.hh>
 
 extern "C" {
     __attribute__((used, section(".requests"))) static volatile LIMINE_BASE_REVISION(2);
@@ -68,6 +70,10 @@ extern "C" [[noreturn]] void _start(void)
     kheap::init((0xFFul * 1024ul * 1024ul * 4096ul) / PAGE_SIZE);
     debugf("Parsing the ACPI tables");
     acpi::parse();
+    debugf("Initializing the IOAPIC");
+    ioapic::init();
+    debugf("Booting up other cores");
+    smp::boot_other_cores();
 
     debugf("Calling KMain");
     uint8_t returnCode = kmain();

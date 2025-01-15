@@ -1,5 +1,6 @@
 #include <sys/mm/mmu.hh>
 #include <sys/mm/pmm.hh>
+#include <sys/apic.hh>
 #include <kprintf>
 #include <atomic>
 #include <cstring>
@@ -68,10 +69,6 @@ namespace mmu {
         for (size_t off = 0; off < ALIGN_UP(pmm::totalBytesPmmStructures, PAGE_SIZE); off += PAGE_SIZE) {
             map((uintptr_t)pmm::pageBitmap + off, (uintptr_t)pmm::pageBitmap - pmm::hhdm->offset + off, PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
         }
-
-        // kprintf(" -> Mapping lapic\n");
-        // map(ALIGN_DOWN((lapic::lapic_address + pmm::hhdm->offset), PAGE_SIZE), ALIGN_DOWN(lapic::lapic_address, PAGE_SIZE), PTE_BIT_PRESENT | PTE_BIT_READ_WRITE);
-        // lapic::lapic_address += pmm::hhdm->offset;
 
         kprintf(" -> Mapping usable memory and framebuffer\n");
         for (size_t i = 0; i < pmm::memmap->entry_count; i++) {
