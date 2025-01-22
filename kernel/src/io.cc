@@ -80,6 +80,10 @@ namespace io {
 		asm volatile ( "hlt" );
 	}
 
+	void pause() {
+		asm volatile ("pause");
+	}
+
 	bool is_interrupts_enabled() {
 		uint64_t rflags;
 		asm volatile (

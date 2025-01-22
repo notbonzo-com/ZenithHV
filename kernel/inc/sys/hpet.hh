@@ -34,7 +34,7 @@ namespace hpet {
 
     extern hpetregs_t *regs;
 
-    bool init();
+    int init();
     void usleep(uint64_t us);
     void set_periodic(uint64_t us, uint8_t vector);
     void stop();

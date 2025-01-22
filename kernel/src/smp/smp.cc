@@ -26,16 +26,20 @@ struct limine_smp_request smp_request = {
 namespace smp {
 
     core_t* current() {
-        uintptr_t gs_base;
-        asm volatile("mov %%gs:0, %0" : "=r"(gs_base));
-        return reinterpret_cast<core_t*>(gs_base);
+        return reinterpret_cast<core_t*>(io::read_kernel_gs_base());
     }
 
-    core_t* get(size_t core_id) {
-        if (core_id >= global_cpus.size()) {
-            return nullptr;
+    core_t* core_by_id(uintptr_t id) {
+        for (auto* core : global_cpus) {
+            if (core->id == id) {
+                return core;
+            }
         }
-        return &global_cpus[core_id];
+        return nullptr;
+    }
+
+    size_t core_count() {
+        return global_cpus.size();
     }
 
     bool tscp_supported() {
@@ -52,7 +56,7 @@ namespace smp {
         return edx & (1 << 27);
     }
 
-    std::vector<core_t> global_cpus;
+    std::vector<core_t*> global_cpus;
     uint64_t cpu_count = 0;
     bool initialized = false;
 
@@ -61,37 +65,42 @@ namespace smp {
     static std::klock somelock;
 
     static void processor_core_entry(struct limine_smp_info* smp_info) {
+        somelock.acquire();
         gdt::reload();
-        intr::init();
+        intr::load();
 
         mmu::kernel_pmc.switch2();
 
+        kprintf("Loaded kernel page table\n");
         auto current_cpu = reinterpret_cast<core_t*>(smp_info->extra_argument);
         current_cpu->lapic_id = io::read_msr(0x1B) & 0xFFFFF000;
 
         io::write_gs_base((uintptr_t)current_cpu);
         io::write_kernel_gs_base((uintptr_t)current_cpu);
+        kprintf("  - CPU %lu: GS base set to %p\n", current_cpu->id, current_cpu);
 
         if (tscp_supported()) {
             io::write_tsc_aux(current_cpu->id);
         }
 
+        kprintf("  - CPU %lu: TSC_AUX set to %lu\n", current_cpu->id, current_cpu->id);
         io::write_msr(0x1A0, io::read_msr(0x1A0) & ~(1ul << 22)); // Disable APIC virtualization if enabled (dont forget I did this)
 
-        {
-            std::auto_lock al(somelock);
-            lapic::init();
+        if (!lapic::init()) {
+            kprintf("  - CPU %lu: LAPIC initialization failed\n", current_cpu->id);
+            intr::kpanic(nullptr, "Failed to boot core\n");
         }
 
         kprintf("  - CPU %lu: LAPIC ID=%u, bus frequency=%lu MHz booted up\n",
             current_cpu->id, current_cpu->lapic_timer_frequency / 1'000'000);
         startup_checksum.store(startup_checksum.load() + 1);
 
+        somelock.release();
         if (current_cpu->id == smp_response->bsp_lapic_id) {
             return;
         }
 
-        for(;;) io::hlt();
+        for(;;) kprintf("%d", current_cpu->id);
     }
 
     void boot_other_cores() {
@@ -101,18 +110,19 @@ namespace smp {
         for (size_t i = 0; i < cpu_count; i++) {
             auto* smp_info = smp_response->cpus[i];
 
-            global_cpus.emplace_back(
-                smp_info->processor_id,
-                smp_info->lapic_id
-            );
-            core_t& cpu = global_cpus.back();
+            core_t* ncpu = new core_t;
+            ncpu->id = smp_info->processor_id;
+            ncpu->lapic_id = smp_info->lapic_id;
+            global_cpus.push_back(ncpu);
+            smp_info->extra_argument = reinterpret_cast<uintptr_t>(ncpu);
 
-            smp_info->extra_argument = reinterpret_cast<uintptr_t>(&cpu);
-
+            kprintf("Initializing CPU %zu with LAPIC ID %u", i, smp_info->lapic_id);
             if (smp_info->lapic_id == smp_response->bsp_lapic_id) {
+                kprintf(" BSP\n");
                 processor_core_entry(smp_info);
                 continue;
             }
+            kprintf("\n");
 
             smp_info->goto_address = processor_core_entry;
         }

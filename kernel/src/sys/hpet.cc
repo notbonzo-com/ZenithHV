@@ -1,3 +1,4 @@
+#include "smp/smp.hh"
 #include <atomic>
 #include <sys/hpet.hh>
 #include <sys/acpi.hh>
@@ -9,22 +10,22 @@ namespace hpet {
     hpetregs_t *regs;
     static std::atomic<bool> initialized = false;
 
-    bool init()
+    int init()
     {
         if (initialized.load()) {
-            return true;
+            return 1;
         }
 
         header *hpet = reinterpret_cast<header *>(acpi::get_sdt("HPET"));
         if (hpet == nullptr) {
-            return false;
+            return -1;
         }
         regs = reinterpret_cast<hpetregs_t *>( (hpet->addr) + pmm::hhdm->offset );
         regs->counter_val = 0;
         regs->general_config = 1;
 
         initialized.store(true);
-        return true;
+        return 0;
     }
 
     void usleep(uint64_t us)
@@ -46,7 +47,8 @@ namespace hpet {
             reinterpret_cast<uintptr_t>(regs) + 0x100);
         *comparator = ticks;
 
-        ioapic::redirect(vector, vector, 0);
+        kprintf("Redirecting irq0 to vector %u on core %u\n", vector, smp::current()->lapic_id);
+        ioapic::redirect(0, vector, smp::current()->lapic_id);
     }
 
     void stop() {

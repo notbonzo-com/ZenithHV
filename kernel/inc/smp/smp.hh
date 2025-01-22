@@ -30,9 +30,10 @@ namespace smp {
     };
 
     core_t* current();
-    core_t* get(size_t core_id);
+    size_t core_count();
+    core_t* core_by_id(uintptr_t id);
 
-    extern std::vector<core_t> global_cpus;
+    extern std::vector<core_t*> global_cpus;
     extern uint64_t cpu_count;
     extern bool initialized;
 

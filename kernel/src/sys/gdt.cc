@@ -40,7 +40,6 @@ namespace gdt
 
     void reload()
     {
-        kprintf(" -> Loading GDT into GDTR\n");
         asm volatile (
             "mov %0, %%rdi\n"
             "lgdt (%%rdi)\n"

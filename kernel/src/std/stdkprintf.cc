@@ -1,4 +1,5 @@
 #include <atomic>
+#include <io>
 
 extern "C" {
 void _putchar(char c)
@@ -994,8 +995,8 @@ static int _vsnprintf(out_fct_type out, char *buffer, const size_t maxlen, const
     // termination
     out((char)0, buffer, idx < maxlen ? idx : maxlen - 1U, maxlen);
 
+    io::pause();
     kprintfLock.r();
-
     // return written chars without terminating \0
     return (int)idx;
 }

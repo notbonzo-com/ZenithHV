@@ -3,6 +3,8 @@
 #include <kprintf>
 #include <atomic>
 #include <cstring>
+#include <smp/smp.hh>
+#include <sys/apic.hh>
 
 namespace intr {
 
@@ -193,6 +195,7 @@ namespace intr {
         print_register("│       R13 ", regs.R13);kprintf("                     │\n");
         print_register("│       R14 ", regs.R14);kprintf("                     │\n");
         print_register("│       R15 ", regs.R15);kprintf("                     │\n");
+        print_register("│       RIP ", regs.rip);kprintf("                     │\n");
         // kprintf("└───────────┴────────────────────────────────────────┘\n");
 
         kprintf("├───────────┼────────────────────────────────────────┼────────────────────┐\n");
@@ -223,9 +226,22 @@ namespace intr {
 
         stacktrace(&regs);
 
-        //TODO Halt other cores
-        asm volatile ("cli");
-        asm volatile ("hlt");
+        auto silent_halt_handler = [](intr::regs_t*) {
+            asm volatile("cli; hlt;");
+            while (true)
+                asm volatile("hlt;");
+        };
+
+        constexpr size_t SILENT_HALT_VECTOR = 255;
+        intr::register_handler(SILENT_HALT_VECTOR, silent_halt_handler);
+
+        for (size_t core_id = 0; core_id < smp::core_count(); core_id++) {
+            if (core_id != smp::current()->id) {
+                lapic::send_ipi(smp::core_by_id(core_id)->lapic_id, SILENT_HALT_VECTOR);
+            }
+        }
+
+        silent_halt_handler(nullptr);
     }
 
     void load()

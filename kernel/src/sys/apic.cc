@@ -86,9 +86,11 @@ namespace lapic
 
         hpet::set_periodic(calibration_interval_us, CALIBRATION_INTERRUPT_VECTOR);
 
+        io::sti();
         while (core->calibration_probe_count < LAPIC_TIMER_CALIBRATION_PROBES) {
-            __asm__ volatile ("pause");
+            io::pause();
         }
+        io::cli();
 
         hpet::stop();
         timer_stop();
@@ -104,18 +106,17 @@ namespace lapic
 
     bool init() {
         uintptr_t core_lapic_address = get_lapic_address();
-        size_t core_id = get_current_core_id();
-
         smp::core_t* core = smp::current();
+        core->lapic_address = core_lapic_address;
 
-        kprintf(" -> Mapping LAPIC for core %zu\n", core_id);
+        kprintf(" -> Mapping LAPIC for core %zu\n", core->id);
         mmu::kernel_pmc.map(
             ALIGN_DOWN((core_lapic_address + pmm::hhdm->offset), PAGE_SIZE),
             ALIGN_DOWN(core_lapic_address, PAGE_SIZE),
             mmu::PTE_BIT_PRESENT | mmu::PTE_BIT_READ_WRITE
         );
-
         core->lapic_address += pmm::hhdm->offset;
+        core->lapic_id = (lapic::read_reg(0x20) >> 24) & 0xFF;
 
         io::out<uint8_t>(0x21, 0xFF);
         io::io_wait();
@@ -125,7 +126,7 @@ namespace lapic
         write_reg(0x0F0, 0x1FF);
         write_reg(LAPIC_TASKPRIOR, 0);
 
-        if (!hpet::init()) {
+        if (hpet::init() == -1) {
             return false;
         }
 
