@@ -60,8 +60,8 @@ namespace lapic {
     bool init();
     void send_eoi();
 
-    uint32_t read(uint32_t reg);
-    void write(uint32_t reg, uint32_t value);
+    uint32_t read_reg(uint32_t reg);
+    void write_reg(uint32_t reg, uint32_t value);
 
     void send_ipi(uint32_t lapic_id, uint8_t vector);
 

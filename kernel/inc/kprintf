@@ -116,6 +116,8 @@ int fctprintf(void (*out)(char character, void* arg), void* arg, const char* for
                      kprintf(__VA_ARGS__); kprintf("\n");
 // End of added
 
+void kprintf_emergency_unlock();
+
 #ifdef __cplusplus
 }
 #endif

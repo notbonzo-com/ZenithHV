@@ -1001,6 +1001,10 @@ static int _vsnprintf(out_fct_type out, char *buffer, const size_t maxlen, const
     return (int)idx;
 }
 
+void kprintf_emergency_unlock() {
+    kprintfLock.r();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 int printf_(const char *format, ...)

@@ -141,6 +141,23 @@ namespace intr {
         kprintf("%-4s: 0x%016llx", name, value); 
     }
 
+    static void silent_halt_handler (intr::regs_t*) {
+        io::cli();
+        for (;;)
+            io::hlt();
+    }
+
+    static void halt_other_cores() {
+        intr::register_handler(2 /* nmi */, silent_halt_handler);
+
+        for (size_t core_id = 0; core_id < smp::core_count(); core_id++) {
+            if (core_id != smp::current()->id) {
+                lapic::write_reg(0x310, smp::core_by_id(core_id)->lapic_id << 24);
+                lapic::write_reg(0x300, (1 << 14) | (4 << 8));
+            }
+        }
+    }
+
     void kpanic(regs_t *nregs, const char* str)
     {
         regs_t regs;
@@ -152,6 +169,8 @@ namespace intr {
         } else {
             std::memcpy(&regs, nregs, sizeof(regs_t));
         }
+        halt_other_cores();
+        kprintf_emergency_unlock();
 
         kprintf("----------------------------------------------------------\n");
         kprintf("Exception: %lu > %s\n", regs.interrupt, regs.interrupt < 32 ? 
@@ -226,22 +245,8 @@ namespace intr {
 
         stacktrace(&regs);
 
-        auto silent_halt_handler = [](intr::regs_t*) {
-            asm volatile("cli; hlt;");
-            while (true)
-                asm volatile("hlt;");
-        };
-
-        constexpr size_t SILENT_HALT_VECTOR = 255;
-        intr::register_handler(SILENT_HALT_VECTOR, silent_halt_handler);
-
-        for (size_t core_id = 0; core_id < smp::core_count(); core_id++) {
-            if (core_id != smp::current()->id) {
-                lapic::send_ipi(smp::core_by_id(core_id)->lapic_id, SILENT_HALT_VECTOR);
-            }
-        }
-
-        silent_halt_handler(nullptr);
+        io::cli();
+        for(;;) io::hlt();
     }
 
     void load()
