@@ -91,8 +91,8 @@ namespace smp {
             intr::kpanic(nullptr, "Failed to boot core\n");
         }
 
-        kprintf("  - CPU %lu: LAPIC ID=%u, bus frequency=%lu MHz booted up\n",
-            current_cpu->id, current_cpu->lapic_timer_frequency / 1'000'000);
+        kprintf("  - CPU %lu: LAPIC ID=%u booted up\n",
+            current_cpu->id, current_cpu->lapic_id);
         startup_checksum.store(startup_checksum.load() + 1);
 
         somelock.release();
@@ -100,7 +100,7 @@ namespace smp {
             return;
         }
 
-        for(;;) kprintf("%d", current_cpu->id);
+        for(;;) io::hlt();
     }
 
     void boot_other_cores() {

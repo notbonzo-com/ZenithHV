@@ -4,6 +4,7 @@
 #include <sys/acpi.hh>
 #include <sys/mm/pmm.hh>
 #include <sys/apic.hh>
+#include <io>
 
 namespace hpet {
 
@@ -22,7 +23,7 @@ namespace hpet {
         }
         regs = reinterpret_cast<hpetregs_t *>( (hpet->addr) + pmm::hhdm->offset );
         regs->counter_val = 0;
-        regs->general_config = 1;
+        regs->general_config = (1 << 0);
 
         initialized.store(true);
         return 0;
@@ -30,14 +31,15 @@ namespace hpet {
 
     void usleep(uint64_t us)
     {
-        uint32_t clock_period = regs->capabilities >> 32;
-        volatile size_t target_val = regs->counter_val + (us * (1000000000 / clock_period));
-        while (regs->counter_val < target_val) ; // todo schedule?
+        uint64_t clock_period = regs->capabilities >> 32;
+        uint64_t ticks = us * 1'000'000'000 / clock_period;
+        volatile size_t target_val = regs->counter_val + ticks;
+        while (regs->counter_val < target_val) io::pause(); // todo schedule?
     }
 
     void set_periodic(uint64_t us, uint8_t vector) {
-        uint64_t ticks_per_us = regs->capabilities & 0xFFFFFFFF;
-        uint64_t ticks = us * ticks_per_us;
+        uint64_t frequency_hz = (regs->capabilities & 0xFFFFFFFF);
+        uint64_t ticks = us * (frequency_hz / 1'000'000);
 
         regs->general_config = (1 << 2) | (1 << 0);
         regs->counter_val = 0;
@@ -52,7 +54,7 @@ namespace hpet {
     }
 
     void stop() {
-        regs->general_config = 0;
+        regs->general_config &= ~(1 << 0);
     }
 
 }

@@ -66,8 +66,6 @@ namespace lapic {
     void send_ipi(uint32_t lapic_id, uint8_t vector);
 
     void timer_stop();
-    void timer_oneshot(uint64_t ms, uint8_t vec);
-    void timer_periodic(uint32_t frequency, uint8_t vector);
     size_t get_current_core_id();
 
 }

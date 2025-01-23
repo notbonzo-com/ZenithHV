@@ -75,8 +75,6 @@ extern "C" [[noreturn]] void _start(void)
     debugf("Booting up other cores");
     smp::boot_other_cores();
 
-    intr::kpanic(nullptr, "go to sleep cores\n");
-
     debugf("Calling KMain");
     uint8_t returnCode = kmain();
     if (returnCode != 0)

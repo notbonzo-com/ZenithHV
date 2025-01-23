@@ -20,8 +20,6 @@ namespace lapic
         return lapic_base;
     }
 
-    constexpr uint32_t LAPIC_TIMER_CALIBRATION_PROBES = 10;
-    constexpr uint8_t CALIBRATION_INTERRUPT_VECTOR = 0x20;
     uint32_t read_reg(uint32_t reg) {
         return *reinterpret_cast<volatile uint32_t*>(smp::current()->lapic_address + static_cast<uintptr_t>(reg));
     }
@@ -38,70 +36,10 @@ namespace lapic
         write_reg(0x380, 0x0);
         write_reg(0x320, (1 << 16));
     }
-
-    void timer_periodic(uint32_t frequency, uint8_t vector) {
-        timer_stop();
-        uint32_t count = smp::current()->lapic_ticks / frequency;
-        write_reg(0x3E0, 0);
-        write_reg(0x380, count);
-        write_reg(0x320, vector | (1 << 17));
-    }
-
-    void timer_oneshot(uint32_t microseconds, uint8_t vector) {
-        timer_stop();
-        uint32_t count = smp::current()->lapic_ticks * microseconds / 1000;
-        write_reg(0x3E0, 0);
-        write_reg(0x380, count);
-        write_reg(0x320, vector);
-    }
     
     void send_ipi(uint32_t lapic_id, uint8_t vector) {
         write_reg(0x310, lapic_id << 24);
         write_reg(0x300, vector | (1 << 14));
-    }
-
-    void calibration_interrupt_handler(intr::regs_t*) {
-        uint32_t current_count = read_reg(0x390);
-        smp::core_t* core = smp::current();
-
-        if (core->calibration_probe_count == 0) {
-            core->calibration_timer_start = current_count;
-        } else if (core->calibration_probe_count == LAPIC_TIMER_CALIBRATION_PROBES) {
-            core->calibration_timer_end = current_count;
-        }
-
-        core->calibration_probe_count += 1;
-        send_eoi();
-    }
-
-    void calibrate_timer(smp::core_t* core) {
-        constexpr uint32_t calibration_interval_us = 100;
-
-        timer_stop();
-        write_reg(0x3E0, 0);
-        write_reg(0x380, 0xFFFFFFFF);
-
-        core->calibration_probe_count = 0;
-        intr::register_handler(CALIBRATION_INTERRUPT_VECTOR, calibration_interrupt_handler);
-
-        hpet::set_periodic(calibration_interval_us, CALIBRATION_INTERRUPT_VECTOR);
-
-        io::sti();
-        while (core->calibration_probe_count < LAPIC_TIMER_CALIBRATION_PROBES) {
-            io::pause();
-        }
-        io::cli();
-
-        hpet::stop();
-        timer_stop();
-        intr::register_handler(CALIBRATION_INTERRUPT_VECTOR, intr::default_interrupt_handler);
-
-        uint64_t timer_delta = core->calibration_timer_start - core->calibration_timer_end;
-        core->lapic_ticks = timer_delta / (LAPIC_TIMER_CALIBRATION_PROBES * calibration_interval_us);
-        core->lapic_timer_frequency = core->lapic_ticks * 1000000; // Convert ticks per us to Hz
-
-        kprintf("LAPIC timer calibrated for core %zu: %u ticks per microsecond\n",
-                get_current_core_id(), core->lapic_ticks);
     }
 
     bool init() {
@@ -130,7 +68,6 @@ namespace lapic
             return false;
         }
 
-        calibrate_timer(core);
         timer_stop();
 
         return true;
