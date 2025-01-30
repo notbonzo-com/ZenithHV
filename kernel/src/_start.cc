@@ -29,9 +29,9 @@ extern "C" {
         (void)destructor; (void)arg; (void)dso; return 0;
     }
     extern void __cxa_pure_virtual(void) {};
-    extern "C" uint8_t kmain(void);
     void __shutdown(void);
 }
+uint8_t vmm_main(void);
 
 namespace __cxxabiv1 {
     __extension__ typedef int __guard __attribute__((mode(__DI__)));
@@ -75,12 +75,12 @@ extern "C" [[noreturn]] void _start(void)
     debugf("Booting up other cores");
     smp::boot_other_cores();
 
-    debugf("Calling KMain");
-    uint8_t returnCode = kmain();
+    debugf("Calling Hypervisor Entry point!");
+    uint8_t returnCode = vmm_main();
     if (returnCode != 0)
     {
-        kprintf(" -> Kernel returned with exit code %d\n", returnCode);
-        intr::kpanic(nullptr, "Kernel Main Returned Non-Zero!");
+        kprintf(" -> Hypervisor returned with exit code %d\n", returnCode);
+        intr::kpanic(nullptr, "Hypervisor Returned Non-Zero!");
     }
 
     debugf("Attempting to shut down...");
