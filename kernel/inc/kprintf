@@ -32,6 +32,7 @@
 #ifndef _PRINTF_H_
 #define _PRINTF_H_
 
+#include <stdint.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stddef.h>

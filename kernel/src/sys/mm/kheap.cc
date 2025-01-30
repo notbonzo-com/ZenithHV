@@ -15,6 +15,7 @@ namespace kheap {
 	uintptr_t kernel_heap_base_address = 0x0;
 	uint8_t *kernel_heap_bitmap = 0x0;
 
+	struct heap_bounds heap_bounds;
 
 	void init(size_t max_heap_size_pages)
 	{
@@ -28,6 +29,9 @@ namespace kheap {
 		}
 		kernel_heap_bitmap += pmm::hhdm->offset;
 		std::memset(kernel_heap_bitmap, 0x00, PAGE_SIZE);
+
+		heap_bounds.base = kernel_heap_base_address;
+		heap_bounds.size = kernel_heap_max_size_pages * PAGE_SIZE;
 
 		kprintf(" ->> Kernel heap bitmap initialized at %p\n", kernel_heap_bitmap);
 		kprintf(" -> %lu MiB dynamic memory available\n", kernel_heap_max_size_pages / (1024 * 1024));
