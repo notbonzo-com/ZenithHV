@@ -6,7 +6,6 @@
 #define LOCK_H
 
 #include <stdatomic.h>
-#include <stdint.h>
 
 typedef struct {
     atomic_flag locked;
@@ -14,7 +13,7 @@ typedef struct {
 
 typedef struct {
     spinlock_t spinlock;
-    uint64_t flags;
+    bool flags;
 } irq_lock_t;
 
 void spinlock_init( spinlock_t *lock );

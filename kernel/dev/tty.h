@@ -5,7 +5,7 @@
 #ifndef TTY_H
 #define TTY_H
 
-#include <common/constants.h>
+#include <core/constants.h>
 #include <stddef.h>
 
 #define TTY_BUFFER_SIZE 1024

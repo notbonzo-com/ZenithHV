@@ -4,7 +4,7 @@
 // @note: This is an inline file, it will be included by intr.c
 //        These header includes are only for the sake of the LSP
 #include <arch/x86_64/intr.h>
-#include <common/printf.h>
+#include <core/printf.h>
 #include <string.h>
 
 [[gnu::unused]] bool kpanic_inl_guard;

@@ -3,12 +3,14 @@
 //
 
 #include <arch/x86_64/intr.h>
-#include <common/constants.h>
+#include <core/constants.h>
 #include <arch/x86_64/common.h>
 #include <arch/io.h>
 #include <smp/lock.h>
-#include <common/printf.h>
 #include <string.h>
+#ifdef DEBUG
+#include <core/printf.h>
+#endif
 
 [[gnu::aligned(16)]] struct idt_entry idt_descriptor[256] = {0};
 
@@ -57,7 +59,7 @@ static const char* strings[32] = {
     kpanic( ctx, nullptr );
 }
 
-#include <common/kpanic.inl>
+#include <core/kpanic.inl>
 
 #define SET_GATE(interrupt, base, flags) do { \
     idt_descriptor[(interrupt)].offset_low = (base) & 0xFFFF; \

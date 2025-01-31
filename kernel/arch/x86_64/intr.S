@@ -76,7 +76,6 @@ _isr\index:
     .quad _isr\index
 .endm
 
-
 .irpc i, 0123456789abcdef
 .irpc j, 0123456789abcdef
     ISR \i\j

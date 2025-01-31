@@ -29,26 +29,22 @@ void irq_lock_init( irq_lock_t *lock ) {
 }
 
 void irq_lock( irq_lock_t *lock ) {
-    __asm__ volatile (
-        "pushf\n\t"
-        "cli\n\t"
-        "pop %0"
-        : "=r" (lock->flags)
-        :
-        : "memory"
-    );
+    bool interrupts_were_enabled = is_interrupts_enabled( );
+
+    if ( interrupts_were_enabled ) {
+        __asm__ volatile ( "cli" );
+    }
 
     spinlock_lock( &lock->spinlock );
+    lock->flags = interrupts_were_enabled;
 }
 
 void irq_unlock( irq_lock_t *lock ) {
     spinlock_unlock( &lock->spinlock );
 
-    __asm__ volatile (
-        "push %0\n\t"
-        "popf"
-        :
-        : "r" (lock->flags)
-        : "memory"
-    );
+    if ( lock->flags ) {
+        __asm__ volatile ( "sti" );
+    } else {
+        __asm__ volatile ( "cli" );
+    }
 }

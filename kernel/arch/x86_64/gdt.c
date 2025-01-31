@@ -3,9 +3,11 @@
 //
 
 #include <arch/x86_64/gdt.h>
-#include <common/constants.h>
+#include <core/constants.h>
 #include <arch/x86_64/common.h>
-#include <common/printf.h>
+#ifdef DEBUG
+#include <core/printf.h>
+#endif
 
 #define GDT_ENTRIES_COUNT 3
 

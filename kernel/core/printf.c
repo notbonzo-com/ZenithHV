@@ -2,9 +2,10 @@
 // Created by notbonzo on 1/30/25.
 //
 
-#include <common/printf.h>
+#include <core/printf.h>
 #include <dev/tty.h>
 #include <string.h>
+#include <stdint.h>
 #include <stdarg.h>
 
 static int tty_putc( char c, void* ctx )
@@ -343,6 +344,17 @@ int fprintf( putc_func_t putc_func, void* ctx, const char* format, va_list args 
                                     16, width, zero_pad, (spec == 'X'), left_justify );
             if( ret < 0 )
                 return -1;
+            total_count += ret;
+        }
+        else if( spec == 'p' )
+        {
+            uintptr_t ptr = ( uintptr_t ) va_arg( args, void* );
+            char buffer[20];
+
+            ull_to_base( ptr, buffer, 16, 0 );
+
+            int ret = print_str( putc_func, ctx, buffer );
+            if( ret < 0 ) return -1;
             total_count += ret;
         }
         else

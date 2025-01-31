@@ -17,8 +17,8 @@ override LD := $(DEFAULT_LD)
 .PHONY: all
 all: $(BUILD_DIR)/$(KERNEL)
 
-limine.h:
-	@curl -Lo $@ https://github.com/limine-bootloader/limine/raw/trunk/limine.h limine.h
+std/limine.h:
+	@curl -Lo $@ https://github.com/limine-bootloader/limine/raw/trunk/limine.h std/limine.h
 
 $(BUILD_DIR)/$(KERNEL): Makefile linker.ld $(OBJ)
 	@mkdir -p "$$(dirname $@)"
@@ -27,12 +27,12 @@ $(BUILD_DIR)/$(KERNEL): Makefile linker.ld $(OBJ)
 
 -include $(HEADER_DEPS)
 
-$(BUILD_DIR)/kernel/obj/%.c.o: %.c Makefile limine.h
+$(BUILD_DIR)/kernel/obj/%.c.o: %.c Makefile std/limine.h
 	@mkdir -p "$$(dirname $@)"
 	@echo "$(ANSI_GREEN)COMPILING$(ANSI_RESET) $<"
 	@$(CC) $(KERNEL_CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/kernel/obj/%.cc.o: %.cc Makefile limine.h
+$(BUILD_DIR)/kernel/obj/%.cc.o: %.cc Makefile std/limine.h
 	@mkdir -p "$$(dirname $@)"
 	@echo "$(ANSI_GREEN)COMPILING$(ANSI_RESET) $<"
 	@$(CXX) $(KERNEL_CXXFLAGS) $(CPPFLAGS) -c $< -o $@

@@ -1,11 +1,12 @@
-#include <common/constants.h>
+#include <core/constants.h>
 #include <arch/io.h>
-#include <common/printf.h>
+#include <core/printf.h>
 
 #include <dev/tty.h>
 
 #include <arch/x86_64/gdt.h>
 #include <arch/x86_64/intr.h>
+#include <core/mm/pmm.h>
 
 [[noreturn]] void _start( )
 {
@@ -50,8 +51,7 @@
 
     init_gdt( );
     init_idt( );
-
-    kpanic(nullptr, "Hello World");
+    init_pmm( );
 
 #if defined(DEBUG) && DEBUG_VM < 3
     outw( VM_SHUTDOWN_PORT, VM_SHUTDOWN_MAGIC );
