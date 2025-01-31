@@ -27,4 +27,6 @@ void write_msr( uint32_t msr, uint64_t value );
 
 void io_wait( );
 
+void pause( );
+
 #endif //IO_H

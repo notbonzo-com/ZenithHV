@@ -3,6 +3,7 @@
 //
 
 #include <dev/tty.h>
+#include <common/constants.h>
 #include <string.h>
 
 struct tty tty;

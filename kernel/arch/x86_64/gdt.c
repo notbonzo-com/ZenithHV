@@ -4,28 +4,30 @@
 
 #include <arch/x86_64/gdt.h>
 #include <common/constants.h>
+#include <arch/x86_64/common.h>
 #include <common/printf.h>
 
 #define GDT_ENTRIES_COUNT 3
 
-gdt_descriptor_t gdt_descriptor[GDT_ENTRIES_COUNT] = {
+struct gdt_descriptor gdt_descriptor[GDT_ENTRIES_COUNT] = {
     { 0,0,0,0,0,0 },
     { 0, 0, 0, 0b10011010, 0b10100000, 0 }, /* Access: Present, Ring 0, Code, Executable, Readable, not Accessed
                                             Granularity: 32-bit, 4KB granularity */
     { 0, 0, 0, 0b10010010, 0b10100000, 0 } /* Access: Present, Ring 0, Data, Writable, not Accessed
                                             Granularity: 32-bit, 4KB granularity */
 };
-gdt_pointer_t gdt_pointer = { (uint16_t)( ( sizeof( gdt_descriptor ) * GDT_ENTRIES_COUNT ) - 1 ), (uintptr_t)&gdt_descriptor };
+struct table_pointer gdt_pointer = { (uint16_t)( sizeof( gdt_descriptor ) - 1 ), (uintptr_t)&gdt_descriptor };
 
-void init_gdt( ) {
+void init_gdt( )
+{
 #ifdef DEBUG
-    printf("Global Descriptor Table (GDT)\n");
+    printf("\nGlobal Descriptor Table (GDT)\n");
     printf("============================================\n");
     printf("|  #  | Base     | Limit  | Access | Flags |\n");
     printf("============================================\n");
 
     for (int i = 0; i < GDT_ENTRIES_COUNT; i++) {
-        gdt_descriptor_t* entry = &gdt_descriptor[i];
+        struct gdt_descriptor* entry = &gdt_descriptor[i];
 
         uint32_t base = (entry->base_high << 24) | (entry->base_mid << 16) | entry->base_low;
         uint32_t limit = ((entry->limit_high_and_flags & 0x0F) << 16) | entry->limit_low;
@@ -37,7 +39,7 @@ void init_gdt( ) {
 
     printf("============================================\n");
 #endif
-    asm volatile (
+    __asm__ volatile (
             "lgdt (%%rax)\n"
             "push $0x8\n"
             "lea 1f(%%rip), %%rax\n"

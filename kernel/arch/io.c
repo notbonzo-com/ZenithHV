@@ -73,3 +73,7 @@ void write_msr( uint32_t msr, uint64_t value ) {
 void io_wait( ) {
     __asm__ volatile ( "outb %%al, $0x80" : : "a"(0) );
 }
+
+void pause ( ) {
+    __asm__ volatile ( "pause" );
+}

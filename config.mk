@@ -12,10 +12,10 @@ export OBJDUMP := $(HOME)/toolchain/x86_64-elf/bin/x86_64-elf-objdump
 export OBJCOPY := $(HOME)/toolchain/x86_64-elf/bin/x86_64-elf-objcopy
 export NM := $(HOME)/toolchain/x86_64-elf/bin/x86_64-elf-nm
 
-export DEFAULT_CFLAGS := -std=gnu11
+export DEFAULT_CFLAGS := -std=c23
 export DEFAULT_CXXFLAGS := -std=c++23
 
-export DEFAULT_CCFLAGS := -g -O2 -pipe -Wall -Wextra -Werror
+export DEFAULT_CCFLAGS := -g -O2 -pipe -Wall -Wextra -Werror -pedantic
 
 export DEFAULT_NASMFLAGS := -Wall -g
 export DEFAULT_LDFLAGS := -g -O2

@@ -11,7 +11,7 @@
 #define TTY_BUFFER_SIZE 1024
 
 struct tty {
-    void ( *putc )( char c );
+    void(*putc)( char c );
     char buffer[TTY_BUFFER_SIZE];
     size_t buffer_pos;
 };

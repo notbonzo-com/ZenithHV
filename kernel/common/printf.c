@@ -7,25 +7,25 @@
 #include <string.h>
 #include <stdarg.h>
 
-static int tty_putc( char c, void *ctx )
+static int tty_putc( char c, void* ctx )
 {
     (void)ctx;
     tty.putc( c );
     return 0;
 }
 
-static int buffer_putc( char c, void *ctx )
+static int buffer_putc( char c, void* ctx )
 {
     if( !ctx )
         return -1;
 
-    char **buf_ptr = (char **)ctx;
+    char** buf_ptr = (char **)ctx;
     **buf_ptr = c;
     (*buf_ptr)++;
     return 0;
 }
 
-static int print_str( putc_func_t putc_func, void *ctx, const char* str )
+static int print_str( putc_func_t putc_func, void* ctx, const char* str )
 {
     int count = 0;
     if( str )
@@ -92,7 +92,7 @@ static char* ll_to_base( long long value, char* buffer, int base, int uppercase 
     return buffer;
 }
 
-static int print_number( putc_func_t putc_func, void *ctx,
+static int print_number( putc_func_t putc_func, void* ctx,
                          int sign, long long value,
                          unsigned long long uvalue,
                          int base, int width, int zero_pad,
@@ -151,7 +151,7 @@ static int print_number( putc_func_t putc_func, void *ctx,
 }
 
 
-int fprintf( putc_func_t putc_func, void *ctx, const char* format, va_list args )
+int fprintf( putc_func_t putc_func, void* ctx, const char* format, va_list args )
 {
     if( !putc_func || !format )
         return -1;

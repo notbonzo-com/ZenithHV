@@ -15,6 +15,7 @@ ramfs:
 	@make -C ramfs/ BUILD_DIR=$(BUILD_DIR)
 
 disk:
+	@rm -rf $(BUILD_DIR)/image.hdd
 	@dd if=/dev/zero bs=1M count=0 seek=64 of=$(BUILD_DIR)/image.hdd
 	@sgdisk $(BUILD_DIR)/image.hdd -n 1:2048 -t 1:ef00
 
