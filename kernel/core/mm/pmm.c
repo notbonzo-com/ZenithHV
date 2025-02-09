@@ -12,6 +12,10 @@
 #include <core/printf.h>
 #endif
 
+#define IS_ENTRY_USABLE( entry ) ( entry->type == LIMINE_MEMMAP_USABLE )
+#define ALIGN_BLOCK( block ) ( ( struct free_block* )( ( uintptr_t )( block ) & ~( PAGE_SIZE - 1 ) ) )
+#define TRANSLATE_PHYSICAL_ADDRESS( physical_address, hhdm_response ) ( physical_address + hhdm_response->offset )
+
 struct limine_memmap_response *memmap = nullptr;
 struct limine_hhdm_response *hhdm = nullptr;
 struct pmm_info pmm_info = { 0 };
@@ -28,16 +32,44 @@ struct limine_hhdm_request hhdm_request = {
     .response = nullptr
 };
 
+// block must be aligned (use ALIGN_BLOCK( block ))
 static void insert_block_sorted( struct free_block *block ) {
-    block = (struct free_block*)((uintptr_t)block & ~(PAGE_SIZE - 1));
-    struct free_block **prev = &pmm_info.freelist;
-    struct free_block *current = pmm_info.freelist;
-    while ( current && current < block ) {
-        prev = &current->next;
+    struct free_block *start = pmm_info.freelist;
+
+    struct free_block *prev = { 0 };
+    struct free_block *current = start;
+
+    while ( true ) {
+        // End of linked list
+        if ( !current ) {
+            break;
+        }
+
+        // The current address is higher than block
+        if ( current >= block ) {
+            break;
+        }
+
+        prev = current;
         current = current->next;
     }
+
+    if ( prev ) {
+        //   [ start ] ->
+        //   [...] ->
+        //   prev ->
+        // * block ->
+        //   current
+        prev->next = block;
+    } else {
+        //   [ start ] ->
+        // * block ->
+        //   current
+
+        pmm_info.freelist = block;
+    }
+
     block->next = current;
-    *prev = block;
 }
 
 static void coalesce_free_list( ) {
@@ -75,13 +107,14 @@ void init_pmm( ) {
     for ( size_t i = 0; i < memmap->entry_count; i++ ) {
         struct limine_memmap_entry *entry = memmap->entries[i];
 
-        if ( entry->type == LIMINE_MEMMAP_USABLE && 
-            entry->base + entry->length > pmm_info.highest_address_usable ) {
-            pmm_info.highest_address_usable = entry->base + entry->length;
+        bool is_usable = IS_ENTRY_USABLE( entry );
+        size_t page_count = entry->length / PAGE_SIZE;
+        uintptr_t entry_end = entry->base + entry->length;
+
+        if ( is_usable && ( entry_end > pmm_info.highest_address_usable ) ) {
+            pmm_info.highest_address_usable = entry_end;
         }
 
-        size_t page_count = entry->length / PAGE_SIZE;
-        bool is_usable = (entry->type == LIMINE_MEMMAP_USABLE);
 
 #ifdef DEBUG
         printf("| %5lu | 0x%016lx | 0x%016lx | %-18s | %10lu | %-7s |\n",
@@ -93,10 +126,11 @@ void init_pmm( ) {
 
         if ( is_usable ) {
             pmm_info.page_counters.pages_usable += page_count;
-            struct free_block *block = (struct free_block*)(entry->base + hhdm->offset);
+
+            struct free_block *block = ALIGN_BLOCK( TRANSLATE_PHYSICAL_ADDRESS( entry->base, hhdm ) );
             block->size = entry->length;
             block->next = nullptr;
-            insert_block_sorted(block);
+            insert_block_sorted( block );
         } else {
             pmm_info.page_counters.pages_reserved += page_count;
         }
@@ -169,7 +203,7 @@ void pmm_free_pages( void *ptr, size_t count ) {
         kpanic(nullptr, "Attempted to free invalid memory!");
     }
     size_t size = count * PAGE_SIZE;
-    struct free_block *block = (struct free_block*)ptr;
+    struct free_block *block = ALIGN_BLOCK( ptr );
     block->size = size;
     block->next = nullptr;
     insert_block_sorted( block );
