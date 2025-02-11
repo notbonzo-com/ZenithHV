@@ -28,6 +28,7 @@ struct pmm_info {
 
 extern struct pmm_info pmm_info;
 extern struct limine_hhdm_response *hhdm;
+extern struct limine_memmap_response *memmap;
 
 void init_pmm( );
 void *pmm_alloc_pages( size_t count );

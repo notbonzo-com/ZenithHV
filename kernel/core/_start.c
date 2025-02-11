@@ -7,6 +7,7 @@
 #include <arch/x86_64/gdt.h>
 #include <arch/x86_64/intr.h>
 #include <core/mm/pmm.h>
+#include <core/mm/mmu.h>
 
 [[noreturn]] void _start( )
 {
@@ -52,8 +53,10 @@
     init_gdt( );
     init_idt( );
     init_pmm( );
+    init_mmu( );
 
 #if defined(DEBUG) && DEBUG_VM < 3
+    printf("Shutting down gracefully\n");
     outw( VM_SHUTDOWN_PORT, VM_SHUTDOWN_MAGIC );
 #endif
 

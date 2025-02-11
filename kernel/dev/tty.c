@@ -13,6 +13,9 @@ struct tty tty;
 void putc( char c ) {
     outb( 0xe9, c );
 }
+#elif !defined(DEBUG)
+void putc( char ) {
+}
 #endif
 
 void init_tty( ) {
